@@ -1,0 +1,147 @@
+results → results/20261124-034813
+
+=== t1 run 1/5: Read a value (TextEdit) ===
+could not bring the person app to the front; skipping run
+
+=== t1 run 2/5: Read a value (TextEdit) ===
+--- t1#2: PASS · agent said done · 10.3s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 3/5: Read a value (TextEdit) ===
+--- t1#3: PASS · agent said done · 9.3s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 4/5: Read a value (TextEdit) ===
+--- t1#4: PASS · agent said done · 9.2s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 5/5: Read a value (TextEdit) ===
+--- t1#5: PASS · agent said done · 12.2s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t2 run 1/5: Rename a file, contents intact (Finder) ===
+--- t2#1: PASS · agent said done · 16.5s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 2/5: Rename a file, contents intact (Finder) ===
+--- t2#2: PASS · agent said done · 16.3s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 3/5: Rename a file, contents intact (Finder) ===
+--- t2#3: PASS · agent said done · 16.6s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 4/5: Rename a file, contents intact (Finder) ===
+--- t2#4: PASS · agent said done · 15.3s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 5/5: Rename a file, contents intact (Finder) ===
+--- t2#5: PASS · agent said done · 14.9s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t3 run 1/5: Create and save a document (TextEdit) ===
+--- t3#1: PASS · agent said done · 28.9s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 2/5: Create and save a document (TextEdit) ===
+--- t3#2: PASS · agent said done · 29.3s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 3/5: Create and save a document (TextEdit) ===
+--- t3#3: PASS · agent said done · 27.3s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 4/5: Create and save a document (TextEdit) ===
+--- t3#4: PASS · agent said no_finish · 25.9s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 5/5: Create and save a document (TextEdit) ===
+--- t3#5: PASS · agent said done · 28.3s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t4 run 1/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#1: PASS · agent said done · 44.6s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 2/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#2: PASS · agent said done · 78.9s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 3/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#3: FAIL · agent said failed · 37.7s · focus MOVED Stickies→Numbers · {'moved_ok': False, 'others_in_place': True, 'diff': ['ledger-aug-067-hold.csv', 'ledger-jul-006-hold.csv', 'ledger-jul-018-hold.csv', 'ledger-jul-054-hold.csv', 'ledger-sep-008-hold.csv', 'ledger-sep-080-hold.csv', 'on-hold/ledger-aug-067-hold.csv', 'on-hold/ledger-jul-006-hold.csv', 'on-hold/ledger-jul-018-hold.csv', 'on-hold/ledger-jul-054-hold.csv', 'on-hold/ledger-sep-008-hold.csv', 'on-hold/ledger-sep-080-hold.csv'], 'n_expected_moved': 6}
+
+=== t4 run 4/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#4: PASS · agent said done · 42.2s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 5/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#5: PASS · agent said done · 31.7s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t5 run 1/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#1: PASS · agent said done · 31.3s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 2/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#2: PASS · agent said done · 25.4s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 3/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#3: PASS · agent said done · 26.9s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 4/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#4: PASS · agent said done · 27.9s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 5/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#5: PASS · agent said no_finish · 27.4s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t6 run 1/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#1: PASS · agent said done · 35.8s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 2/5: Replace-file dialog interrupts save (TextEdit) ===
+could not bring the person app to the front; skipping run
+
+=== t6 run 3/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#3: PASS · agent said done · 34.5s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 4/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#4: PASS · agent said done · 34.7s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 5/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#5: PASS · agent said done · 34.2s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t7 run 1/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#1: PASS · agent said done · 43.7s · focus kept · {'exists': True, 'lines': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf'], 'expected': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf']}
+
+=== t7 run 2/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#2: PASS · agent said done · 38.3s · focus kept · {'exists': True, 'lines': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf'], 'expected': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf']}
+
+=== t7 run 3/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#3: PASS · agent said done · 43.9s · focus kept · {'exists': True, 'lines': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf'], 'expected': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf']}
+
+=== t7 run 4/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#4: PASS · agent said done · 34.2s · focus kept · {'exists': True, 'lines': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf'], 'expected': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf']}
+
+=== t7 run 5/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#5: PASS · agent said done · 34.3s · focus kept · {'exists': True, 'lines': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf'], 'expected': ['INV-70775-Acme.pdf', 'INV-71258-Acme.pdf', 'INV-93171-Acme.pdf']}
+
+=== t8 run 1/5: Background edit+save while a person types in Stickies ===
+--- t8#1: PASS · agent said done · 12.1s · focus kept · {'file_ok': True, 'person_text_intact': True, 'typed_chars': 79, 'note_chars': 79, 'leaked_into_doc': False, 'agent_saw_save': True, 'person_kept_focus': True}
+
+=== t8 run 2/5: Background edit+save while a person types in Stickies ===
+--- t8#2: PASS · agent said done · 10.4s · focus kept · {'file_ok': True, 'person_text_intact': True, 'typed_chars': 68, 'note_chars': 68, 'leaked_into_doc': False, 'agent_saw_save': True, 'person_kept_focus': True}
+
+=== t8 run 3/5: Background edit+save while a person types in Stickies ===
+--- t8#3: PASS · agent said done · 12.3s · focus kept · {'file_ok': True, 'person_text_intact': True, 'typed_chars': 80, 'note_chars': 80, 'leaked_into_doc': False, 'agent_saw_save': True, 'person_kept_focus': True}
+
+=== t8 run 4/5: Background edit+save while a person types in Stickies ===
+--- t8#4: PASS · agent said done · 11.6s · focus kept · {'file_ok': True, 'person_text_intact': True, 'typed_chars': 76, 'note_chars': 76, 'leaked_into_doc': False, 'agent_saw_save': True, 'person_kept_focus': True}
+
+=== t8 run 5/5: Background edit+save while a person types in Stickies ===
+--- t8#5: PASS · agent said done · 9.9s · focus kept · {'file_ok': True, 'person_text_intact': True, 'typed_chars': 65, 'note_chars': 65, 'leaked_into_doc': False, 'agent_saw_save': True, 'person_kept_focus': True}
+
+# Benchmark results — 20261124-034813
+
+Model `claude-opus-5-5`, effort `medium`, timeout 300.0s per run, 5 runs per task from the same starting state. Outcomes checked on disk / in the apps, independently of the agent's message.
+
+| task | level | runs | pass | timeout | said done but wasn't | focus moved | p50 s | p95 s |
+|---|---|---|---|---|---|---|---|---|
+| t1 Read a value (TextEdit) | easy | 4 | 4 | 0 | 0 | 0 | 9.3 | 12.2 |
+| t2 Rename a file, contents intact (Finder) | easy | 5 | 5 | 0 | 0 | 0 | 16.3 | 16.6 |
+| t3 Create and save a document (TextEdit) | easy | 5 | 5 | 0 | 0 | 0 | 28.3 | 29.3 |
+| t4 Move flagged items in an 85-item list (Finder) | medium | 5 | 4 | 0 | 0 | 1 | 42.2 | 78.9 |
+| t5 Edit one clause, save a copy, original intact (TextEdit) | medium | 5 | 5 | 0 | 0 | 0 | 27.4 | 31.3 |
+| t6 Replace-file dialog interrupts save (TextEdit) | medium | 4 | 4 | 0 | 0 | 0 | 34.5 | 35.8 |
+| t7 Finder list → TextEdit document, verified vs folder | hard | 5 | 5 | 0 | 0 | 0 | 38.3 | 43.9 |
+| t8 Background edit+save while a person types in Stickies | hard | 5 | 5 | 0 | 0 | 0 | 11.7 | 12.3 |
+| **all** | | 38 | 37 | 0 | 0 | 1 | 27.4 | 44.6 |
+
+p50/p95 are nearest-rank over the runs in each row (n=38 overall).
+Agent reported 'failed' (honest failure): 1; no finish / harness error: 2; stale-state refusals by the server: 17.
+
+## Failures
+
+- **t4#3** agent said `failed` (37.66s, 10 calls): `{"moved_ok": false, "others_in_place": true, "diff": ["ledger-aug-067-hold.csv", "ledger-jul-006-hold.csv", "ledger-jul-018-hold.csv", "ledger-jul-054-hold.csv", "ledger-sep-008-hold.csv", "ledger-sep-080-hold.csv", "on-hold/ledger-aug-067-hold.csv", "on-hold/ledger-jul-006-hold.csv", "on-hold/ledger-jul-018-hold.csv", "on-hold/ledger-jul-054-hold.csv", "on-hold/ledger-sep-008-hold.csv", "on-hold/`
+
+Tokens: 3075723 input (incl. cached) / 41550 output over 38 runs.
+

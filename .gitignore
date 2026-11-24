@@ -1,0 +1,7 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+INTERVIEW_PREP.md
+results-raw/
+.DS_Store

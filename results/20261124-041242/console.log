@@ -1,0 +1,156 @@
+results → results/20261124-041242
+
+=== t1 run 1/5: Read a value (TextEdit) ===
+--- t1#1: PASS · agent said done · 10.8s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 2/5: Read a value (TextEdit) ===
+--- t1#2: PASS · agent said done · 10.1s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 3/5: Read a value (TextEdit) ===
+--- t1#3: PASS · agent said done · 8.4s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 4/5: Read a value (TextEdit) ===
+--- t1#4: PASS · agent said done · 8.6s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t1 run 5/5: Read a value (TextEdit) ===
+--- t1#5: PASS · agent said done · 12.2s · focus kept · {'expected': 'qty=508 bin=B-16', 'got': 'qty=508 bin=B-16', 'doc_unchanged': True}
+
+=== t2 run 1/5: Rename a file, contents intact (Finder) ===
+--- t2#1: PASS · agent said done · 15.4s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 2/5: Rename a file, contents intact (Finder) ===
+--- t2#2: PASS · agent said done · 14.6s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 3/5: Rename a file, contents intact (Finder) ===
+--- t2#3: PASS · agent said done · 14.3s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 4/5: Rename a file, contents intact (Finder) ===
+--- t2#4: PASS · agent said done · 14.3s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t2 run 5/5: Rename a file, contents intact (Finder) ===
+--- t2#5: PASS · agent said done · 14.3s · focus kept · {'renamed': True, 'contents_intact': True, 'others_intact': True}
+
+=== t3 run 1/5: Create and save a document (TextEdit) ===
+--- t3#1: PASS · agent said done · 31.0s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 2/5: Create and save a document (TextEdit) ===
+--- t3#2: PASS · agent said done · 29.9s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 3/5: Create and save a document (TextEdit) ===
+--- t3#3: PASS · agent said done · 28.4s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 4/5: Create and save a document (TextEdit) ===
+--- t3#4: PASS · agent said done · 33.3s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t3 run 5/5: Create and save a document (TextEdit) ===
+--- t3#5: PASS · agent said done · 27.3s · focus kept · {'exists': True, 'plain_text': True, 'content_ok': True, 'content': 'Meeting notes 2026-11-24\nAttendees: Priya, Tomás, Wen\nDecision: ship v2.3 on Friday'}
+
+=== t4 run 1/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#1: PASS · agent said done · 28.7s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 2/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#2: PASS · agent said done · 29.0s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 3/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#3: PASS · agent said done · 31.1s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 4/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#4: PASS · agent said done · 29.7s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t4 run 5/5: Move flagged items in an 85-item list (Finder) ===
+--- t4#5: PASS · agent said done · 30.5s · focus kept · {'moved_ok': True, 'others_in_place': True, 'diff': [], 'n_expected_moved': 6}
+
+=== t5 run 1/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#1: PASS · agent said done · 44.7s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 2/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#2: PASS · agent said done · 44.5s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 3/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#3: PASS · agent said done · 42.3s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 4/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#4: PASS · agent said done · 41.6s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t5 run 5/5: Edit one clause, save a copy, original intact (TextEdit) ===
+--- t5#5: PASS · agent said done · 30.3s · focus kept · {'original_intact': True, 'copy_exists': True, 'copy_correct': True}
+
+=== t6 run 1/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#1: PASS · agent said done · 34.0s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 2/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#2: PASS · agent said done · 31.5s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 3/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#3: PASS · agent said done · 33.9s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 4/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#4: PASS · agent said done · 33.5s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t6 run 5/5: Replace-file dialog interrupts save (TextEdit) ===
+--- t6#5: PASS · agent said done · 33.2s · focus kept · {'existing_unchanged': True, 'summary-2_ok': True, 'files': ['summary-2.txt', 'summary.txt']}
+
+=== t7 run 1/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#1: FAIL · agent said error · 1.9s · focus kept · {'exists': False}
+
+=== t7 run 2/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#2: FAIL · agent said error · 1.7s · focus kept · {'exists': False}
+
+=== t7 run 3/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#3: FAIL · agent said error · 1.8s · focus kept · {'exists': False}
+
+=== t7 run 4/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#4: FAIL · agent said error · 1.9s · focus kept · {'exists': False}
+
+=== t7 run 5/5: Finder list → TextEdit document, verified vs folder ===
+--- t7#5: FAIL · agent said error · 2.0s · focus kept · {'exists': False}
+
+=== t8 run 1/5: Background edit+save while a person types in Stickies ===
+--- t8#1: FAIL · agent said error · 1.7s · focus kept · {'file_ok': False, 'person_text_intact': True, 'typed_chars': 13, 'note_chars': 13, 'leaked_into_doc': False, 'agent_saw_save': False, 'person_kept_focus': True}
+
+=== t8 run 2/5: Background edit+save while a person types in Stickies ===
+--- t8#2: FAIL · agent said error · 1.8s · focus kept · {'file_ok': False, 'person_text_intact': True, 'typed_chars': 14, 'note_chars': 14, 'leaked_into_doc': False, 'agent_saw_save': False, 'person_kept_focus': True}
+
+=== t8 run 3/5: Background edit+save while a person types in Stickies ===
+--- t8#3: FAIL · agent said error · 1.5s · focus kept · {'file_ok': False, 'person_text_intact': True, 'typed_chars': 12, 'note_chars': 12, 'leaked_into_doc': False, 'agent_saw_save': False, 'person_kept_focus': True}
+
+=== t8 run 4/5: Background edit+save while a person types in Stickies ===
+--- t8#4: FAIL · agent said error · 1.6s · focus kept · {'file_ok': False, 'person_text_intact': True, 'typed_chars': 13, 'note_chars': 13, 'leaked_into_doc': False, 'agent_saw_save': False, 'person_kept_focus': True}
+
+=== t8 run 5/5: Background edit+save while a person types in Stickies ===
+--- t8#5: FAIL · agent said error · 1.5s · focus kept · {'file_ok': False, 'person_text_intact': True, 'typed_chars': 12, 'note_chars': 12, 'leaked_into_doc': False, 'agent_saw_save': False, 'person_kept_focus': True}
+
+# Benchmark results — 20261124-041242
+
+Model `claude-opus-5-5`, effort `medium`, timeout 300.0s per run, 5 runs per task from the same starting state. Outcomes checked on disk / in the apps, independently of the agent's message.
+
+| task | level | runs | pass | timeout | said done but wasn't | focus moved | p50 s | p95 s |
+|---|---|---|---|---|---|---|---|---|
+| t1 Read a value (TextEdit) | easy | 5 | 5 | 0 | 0 | 0 | 10.1 | 12.2 |
+| t2 Rename a file, contents intact (Finder) | easy | 5 | 5 | 0 | 0 | 0 | 14.3 | 15.4 |
+| t3 Create and save a document (TextEdit) | easy | 5 | 5 | 0 | 0 | 0 | 29.9 | 33.3 |
+| t4 Move flagged items in an 85-item list (Finder) | medium | 5 | 5 | 0 | 0 | 0 | 29.6 | 31.1 |
+| t5 Edit one clause, save a copy, original intact (TextEdit) | medium | 5 | 5 | 0 | 0 | 0 | 42.3 | 44.7 |
+| t6 Replace-file dialog interrupts save (TextEdit) | medium | 5 | 5 | 0 | 0 | 0 | 33.5 | 34.0 |
+| t7 Finder list → TextEdit document, verified vs folder | hard | 5 | 0 | 0 | 0 | 0 | 1.9 | 2.0 |
+| t8 Background edit+save while a person types in Stickies | hard | 5 | 0 | 0 | 0 | 0 | 1.6 | 1.8 |
+| **all** | | 40 | 30 | 0 | 0 | 0 | 15.4 | 42.3 |
+
+p50/p95 are nearest-rank over the runs in each row (n=40 overall).
+Agent reported 'failed' (honest failure): 0; no finish / harness error: 10; stale-state refusals by the server: 5.
+
+## Failures
+
+- **t7#1** agent said `error` (1.91s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgvuAT9tBFx7txY9a1b'}: `{"exists": false}`
+- **t7#2** agent said `error` (1.72s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgwgEr76Y2wffvNQjcX'}: `{"exists": false}`
+- **t7#3** agent said `error` (1.83s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgxSFzNdQquYTJE1DVA'}: `{"exists": false}`
+- **t7#4** agent said `error` (1.9s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgyCubQGweouvuZFm8A'}: `{"exists": false}`
+- **t7#5** agent said `error` (2.05s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgyziQWAhTUefun86nv'}: `{"exists": false}`
+- **t8#1** agent said `error` (1.71s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLgzUz24KmgQgcQpivia'}: `{"file_ok": false, "person_text_intact": true, "typed_chars": 13, "note_chars": 13, "leaked_into_doc": false, "agent_saw_save": false, "person_kept_focus": true}`
+- **t8#2** agent said `error` (1.81s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLh13Reb1NaXJn6zXY64'}: `{"file_ok": false, "person_text_intact": true, "typed_chars": 14, "note_chars": 14, "leaked_into_doc": false, "agent_saw_save": false, "person_kept_focus": true}`
+- **t8#3** agent said `error` (1.53s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLh1aQUBsWoRHsPSQ5Vj'}: `{"file_ok": false, "person_text_intact": true, "typed_chars": 12, "note_chars": 12, "leaked_into_doc": false, "agent_saw_save": false, "person_kept_focus": true}`
+- **t8#4** agent said `error` (1.6s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLh27VkQeVq6uiSha4Lq'}: `{"file_ok": false, "person_text_intact": true, "typed_chars": 13, "note_chars": 13, "leaked_into_doc": false, "agent_saw_save": false, "person_kept_focus": true}`
+- **t8#5** agent said `error` (1.53s, 0 calls) — BadRequestError: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'}, 'request_id': 'req_011ChLh2ePc6drfxs6eS21hb'}: `{"file_ok": false, "person_text_intact": true, "typed_chars": 12, "note_chars": 12, "leaked_into_doc": false, "agent_saw_save": false, "person_kept_focus": true}`
+
+Tokens: 2175060 input (incl. cached) / 31770 output over 40 runs.
+

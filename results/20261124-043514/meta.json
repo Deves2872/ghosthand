@@ -1,0 +1,1 @@
+{"model": "claude-opus-5-5", "effort": "medium", "timeout": 300.0, "runs": 5, "tasks": ["t7", "t8"]}
