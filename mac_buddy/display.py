@@ -7,7 +7,7 @@ Compact (default): one line per tool call, e.g.
 
 Anything that needs attention (ERROR, STALE, FOCUS MOVED, NO CHANGE, NOT SAVED…)
 is printed in full under its line. Verbose (-v, /verbose) prints every result in
-full, as before. Every event also goes to a JSONL log, which `ghosthand-log`
+full, as before. Every event also goes to a JSONL log, which `mac-buddy-log`
 replays in either view.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ import time
 C = {"dim": "\033[2m", "b": "\033[1m", "g": "\033[32m", "r": "\033[31m", "y": "\033[33m",
      "c": "\033[36m", "m": "\033[35m", "x": "\033[0m"}
 
-LOG_DIR = os.path.expanduser("~/Library/Logs/ghosthand")
+LOG_DIR = os.path.expanduser("~/Library/Logs/mac-buddy")
 
 # Result lines that must always be shown, in full, in the compact view.
 _ALERT = re.compile(r"^(ERROR|FOCUS MOVED|NO CHANGE|NO NEW WINDOW|NOT SAVED|APPS LAUNCHED|NOTE: changed|"
@@ -213,10 +213,10 @@ class Printer:
 
 
 def replay_main():
-    """ghosthand-log [PATH|latest] [-v] [--all]: replay a saved log."""
+    """mac-buddy-log [PATH|latest] [-v] [--all]: replay a saved log."""
     import argparse
     import glob
-    ap = argparse.ArgumentParser(description="Replay an ghosthand log (compact by default).")
+    ap = argparse.ArgumentParser(description="Replay a mac-buddy log (compact by default).")
     ap.add_argument("path", nargs="?", default="latest", help="a .jsonl log, or 'latest'")
     ap.add_argument("-v", "--verbose", action="store_true", help="show every result in full")
     ap.add_argument("--list", action="store_true", help="list saved logs")

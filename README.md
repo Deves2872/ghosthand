@@ -1,8 +1,8 @@
-# ghosthand: a background macOS computer-use agent over the accessibility tree
+# mac-buddy: a background macOS computer-use agent over the accessibility tree
 
-- **`ghosthand/server.py`** is an MCP server (stdio). It observes one window through the AX tree and acts on it: click, set or replace text, keys, menus, scroll, select rows. After every action it returns what changed in that window, a focus report, and whether the document's file on disk changed.
-- **`ghosthand/harness.py`** runs one task with one command and streams every tool call and its changes live. It also writes a JSONL log.
-- **`ghosthand/bench/`** has 8 benchmark tasks with synthetic data, checkers that work independently of the agent, a simulated person who types in another app, scripted reference solutions and safe-failure checks.
+- **`mac_buddy/server.py`** is an MCP server (stdio). It observes one window through the AX tree and acts on it: click, set or replace text, keys, menus, scroll, select rows. After every action it returns what changed in that window, a focus report, and whether the document's file on disk changed.
+- **`mac_buddy/harness.py`** runs one task with one command and streams every tool call and its changes live. It also writes a JSONL log.
+- **`mac_buddy/bench/`** has 8 benchmark tasks with synthetic data, checkers that work independently of the agent, a simulated person who types in another app, scripted reference solutions and safe-failure checks.
 
 Design note: [DESIGN.md](DESIGN.md). Results: [RESULTS.md](RESULTS.md).
 
@@ -16,7 +16,7 @@ uv sync
 
 The process that runs the server needs **Accessibility** permission. Go to System Settings → Privacy & Security → Accessibility and enable the app you launch it from (Terminal, iTerm, Claude, …).
 
-To be walked through it, run `uv run ghosthand-setup`. It shows the system's permission dialog, opens the Accessibility pane of System Settings, names the app to turn on, and waits until it is on. macOS doesn't let a program grant this to itself, so you turn on the switch. `ghosthand` and `ghosthand-bench` run the same check before they call the model.
+To be walked through it, run `uv run mac-buddy-setup`. It shows the system's permission dialog, opens the Accessibility pane of System Settings, names the app to turn on, and waits until it is on. macOS doesn't let a program grant this to itself, so you turn on the switch. `mac-buddy` and `mac-buddy-bench` run the same check before they call the model.
 
 Put the key in `.env` in this folder (it is git-ignored):
 
@@ -29,7 +29,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 Open any TextEdit document. Keep typing in another app if you like. Then run:
 
 ```bash
-uv run ghosthand "In TextEdit, add the line 'checked by agent' at the end of the open document and save it."
+uv run mac-buddy "In TextEdit, add the line 'checked by agent' at the end of the open document and save it."
 ```
 
 The output is one line per step: the call, then what it did.
@@ -46,22 +46,22 @@ The output is one line per step: the call, then what it did.
 
 Anything that needs attention (ERROR, STALE, FOCUS MOVED, NO CHANGE, NOT SAVED…) is printed in full under its line. Use `-v` to see every tree and diff.
 
-Every run is also saved in full to `~/Library/Logs/ghosthand/` as a JSONL file; the last line of the output names it. To replay a saved run:
+Every run is also saved in full to `~/Library/Logs/mac-buddy/` as a JSONL file; the last line of the output names it. To replay a saved run:
 
 ```bash
-uv run ghosthand-log           # the latest run, compact
-uv run ghosthand-log -v        # …with every result in full
-uv run ghosthand-log --list    # recent logs
+uv run mac-buddy-log           # the latest run, compact
+uv run mac-buddy-log -v        # …with every result in full
+uv run mac-buddy-log --list    # recent logs
 ```
 
 Options: `--model`, `--effort low|medium|high|xhigh|max` (default medium), `--timeout`, `--log path.jsonl`, `-v`.
 
 ### Chat mode
 
-Run `ghosthand` with no task to chat with it in the terminal:
+Run `mac-buddy` with no task to chat with it in the terminal:
 
 ```bash
-uv run ghosthand
+uv run mac-buddy
 ```
 
 Type one request at a time. The agent's work streams live, as above. The server and the conversation stay alive between requests, so a follow-up like "undo that" or "now save a copy of it" knows what you mean. You can keep using other apps between requests and while it works.
@@ -74,14 +74,14 @@ Type one request at a time. The agent's work streams live, as above. The server 
 - **Ctrl-C** stops the current request but keeps the chat. The agent is told it was interrupted, so it checks the apps before continuing.
 - **Ctrl-D** or `/exit` quits.
 
-`uv run ghosthand-chat` does the same thing.
+`uv run mac-buddy-chat` does the same thing.
 
 The history is append-only, because the API ties each thinking block to the exact conversation before it. Long chats therefore grow, but most of the re-sent history is cheap prompt-cache reads. Use `/new` when you move on to something unrelated.
 
 To use the server from any MCP client:
 
 ```json
-{ "mcpServers": { "ghosthand": { "command": "uv", "args": ["--directory", "/path/to/ghosthand", "run", "ghosthand-server"] } } }
+{ "mcpServers": { "mac-buddy": { "command": "uv", "args": ["--directory", "/path/to/mac-buddy", "run", "mac-buddy-server"] } } }
 ```
 
 ## Reproduce the benchmark
@@ -89,9 +89,9 @@ To use the server from any MCP client:
 The benchmark takes over the Mac. Each run brings Stickies (the "person") to the front, and task 8 types into it with real key events. Don't touch the keyboard or mouse while it runs. The simulated person stops typing the moment Stickies stops being the front app, so it can never type into anything else.
 
 ```bash
-uv run ghosthand-bench --runs 5 --timeout 300          # all 8 tasks → results/<timestamp>/
-uv run ghosthand-bench --tasks t5,t8 --runs 3          # a subset
-uv run ghosthand-bench --report results/<timestamp>    # rebuild report.md from runs.jsonl
+uv run mac-buddy-bench --runs 5 --timeout 300          # all 8 tasks → results/<timestamp>/
+uv run mac-buddy-bench --tasks t5,t8 --runs 3          # a subset
+uv run mac-buddy-bench --report results/<timestamp>    # rebuild report.md from runs.jsonl
 ```
 
 Every run starts from the same state. The task's folder under `~/AXBench/` is regenerated from a fixed seed, TextEdit is quit and relaunched in the background with the task's document, and the task's Finder window is reopened in the background. A separate focus monitor in the runner samples the front app and the cursor every 5 ms for the whole run. Pass/fail comes only from the checkers, which read the files and app state. The agent's `finish` message is recorded so it can be compared, and nothing else.
@@ -101,9 +101,9 @@ Outputs: `results/<ts>/runs.jsonl` (one record per run), `report.md`, and `logs/
 Checks that use no model:
 
 ```bash
-uv run python -m ghosthand.bench.safety          # stale / element gone / window gone / no-op detection
-uv run python -m ghosthand.bench.oracle t3       # scripted save-panel flow through the server's tools
-uv run python -m ghosthand.bench.oracle t8       # scripted background edit+save while the person types
+uv run python -m mac_buddy.bench.safety          # stale / element gone / window gone / no-op detection
+uv run python -m mac_buddy.bench.oracle t3       # scripted save-panel flow through the server's tools
+uv run python -m mac_buddy.bench.oracle t8       # scripted background edit+save while the person types
 ```
 
 ## Tasks

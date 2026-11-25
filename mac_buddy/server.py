@@ -12,7 +12,7 @@ from . import ax, snapshot as S, synthfocus
 from .focus import FocusMonitor, attribute, front_app, person_input_age
 from .notes import APP_NOTES
 
-mcp = FastMCP("ghosthand", log_level="WARNING")
+mcp = FastMCP("mac-buddy", log_level="WARNING")
 
 
 class ToolError(Exception):

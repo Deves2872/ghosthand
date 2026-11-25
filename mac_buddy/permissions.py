@@ -6,7 +6,7 @@ dialog and (2) open the right pane of System Settings. The person flips the
 switch. The permission belongs to the app that launched us (Terminal, iTerm,
 VS Code, ...), not to python, so that is the app we name.
 
-Run `ghosthand-setup` (or `python -m ghosthand.permissions`) to go through it.
+Run `mac-buddy-setup` (or `python -m mac_buddy.permissions`) to go through it.
 """
 from __future__ import annotations
 
@@ -52,11 +52,11 @@ def request(wait_s: float = 120.0, interactive: bool = True) -> bool:
     if trusted():
         return True
     app = responsible_app()
-    print(f"ghosthand needs Accessibility permission for '{app}' to read and control windows.",
+    print(f"mac-buddy needs Accessibility permission for '{app}' to read and control windows.",
           file=sys.stderr)
     if not interactive:
         print(f"Grant it in System Settings › Privacy & Security › Accessibility, "
-              f"or run: ghosthand-setup", file=sys.stderr)
+              f"or run: mac-buddy-setup", file=sys.stderr)
         return False
     # The system's own dialog (shown once per app until it is in the list).
     AS.AXIsProcessTrustedWithOptions({AS.kAXTrustedCheckOptionPrompt: True})
@@ -76,7 +76,7 @@ def request(wait_s: float = 120.0, interactive: bool = True) -> bool:
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="Check and request the permissions ghosthand needs.")
+    ap = argparse.ArgumentParser(description="Check and request the permissions mac-buddy needs.")
     ap.add_argument("--wait", type=float, default=120.0, help="seconds to wait for the switch")
     a = ap.parse_args()
     if trusted():

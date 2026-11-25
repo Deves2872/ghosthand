@@ -1,7 +1,7 @@
 """Interactive chat in the terminal: type requests, watch the agent work, follow up.
 
-    uv run ghosthand            # no task → chat
-    uv run ghosthand-chat
+    uv run mac-buddy            # no task → chat
+    uv run mac-buddy-chat
 
 One MCP server and one conversation stay alive for the whole session, so
 follow-ups ("now save a copy of it") know what "it" is. Ctrl-C stops the
@@ -80,7 +80,7 @@ async def chat(model: str, effort: str, timeout_s: float, fallbacks: bool, log_p
             messages: list = []
             pending_note = ""
             totals = {"in": 0, "out": 0, "requests": 0}
-            print(f"{C['b']}ghosthand chat{C['x']} · {model} · effort {effort} · "
+            print(f"{C['b']}mac-buddy chat{C['x']} · {model} · effort {effort} · "
                   f"works in the background; you keep the front app.\n"
                   f"{C['dim']}Type a request, e.g. \"In TextEdit, add 'hello' to the open document "
                   f"and save it\". /help for commands, Ctrl-D to quit.{C['x']}")
@@ -109,7 +109,7 @@ async def chat(model: str, effort: str, timeout_s: float, fallbacks: bool, log_p
                         pr.verbose = not pr.verbose
                         print(f"{C['dim']}verbose {'on' if pr.verbose else 'off'}{C['x']}")
                     elif cmd == "/log":
-                        print(f"{C['dim']}{log_path}  (replay: uv run ghosthand-log){C['x']}")
+                        print(f"{C['dim']}{log_path}  (replay: uv run mac-buddy-log){C['x']}")
                     elif cmd == "/usage":
                         print(f"{C['dim']}{totals['requests']} requests · {totals['in']} in / "
                               f"{totals['out']} out tokens{C['x']}")
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None):
     ap.add_argument("--model", default=MODEL)
     ap.add_argument("--effort", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
     ap.add_argument("--timeout", type=float, default=300, help="seconds per request")
-    ap.add_argument("--log", default=None, help="JSONL log path (default: a new file in ~/Library/Logs/ghosthand)")
+    ap.add_argument("--log", default=None, help="JSONL log path (default: a new file in ~/Library/Logs/mac-buddy)")
     ap.add_argument("-v", "--verbose", action="store_true", help="print every result in full")
     ap.add_argument("--no-fallbacks", action="store_true")
     a = ap.parse_args(argv)

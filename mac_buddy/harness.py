@@ -1,7 +1,7 @@
 """Harness: give the model a task, run it against the AX MCP server, and
 stream every tool call and what changed to the terminal (and a JSONL log).
 
-    uv run ghosthand "In TextEdit, ..."            # one command
+    uv run mac-buddy "In TextEdit, ..."            # one command
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .display import C, Printer, new_log_path
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-MODEL = os.environ.get("GHOSTHAND_MODEL", "claude-opus-5-5")
+MODEL = os.environ.get("MAC_BUDDY_MODEL", "claude-opus-5-5")
 
 SYSTEM = """You operate Mac apps for a person through their accessibility tree, using the tools provided. The person is using their computer at the same time: they keep the front app and their cursor. You work on windows in the BACKGROUND. Nothing you do may bring the target app forward, move the cursor, or type into the person's app; the tools are built so that this does not happen — if a result ever says FOCUS MOVED, stop and report it.
 
@@ -80,7 +80,7 @@ def load_dotenv():
 
 
 def _server_params() -> StdioServerParameters:
-    return StdioServerParameters(command=sys.executable, args=["-m", "ghosthand.server"],
+    return StdioServerParameters(command=sys.executable, args=["-m", "mac_buddy.server"],
                                  env={**os.environ, "PYTHONUNBUFFERED": "1"})
 
 
@@ -225,7 +225,7 @@ def main():
     ap.add_argument("--model", default=MODEL)
     ap.add_argument("--effort", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
     ap.add_argument("--timeout", type=float, default=300)
-    ap.add_argument("--log", default=None, help="JSONL log path (default: a new file in ~/Library/Logs/ghosthand)")
+    ap.add_argument("--log", default=None, help="JSONL log path (default: a new file in ~/Library/Logs/mac-buddy)")
     ap.add_argument("-v", "--verbose", action="store_true", help="print every result in full")
     ap.add_argument("--no-fallbacks", action="store_true")
     a = ap.parse_args()

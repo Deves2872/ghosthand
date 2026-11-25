@@ -1,6 +1,6 @@
 """Scripted checks of the safe-failure rules, against real TextEdit windows.
 
-    uv run python -m ghosthand.bench.safety
+    uv run python -m mac_buddy.bench.safety
 
 1. Something changes between the model's look and its action -> STALE, no action.
 2. The target element disappears -> ELEMENT GONE, no action.
