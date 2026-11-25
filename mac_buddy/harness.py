@@ -228,6 +228,9 @@ def main():
     ap.add_argument("--log", default=None, help="JSONL log path (default: a new file in ~/Library/Logs/mac-buddy)")
     ap.add_argument("-v", "--verbose", action="store_true", help="print every result in full")
     ap.add_argument("--no-fallbacks", action="store_true")
+    ap.add_argument("--no-plan", action="store_true",
+                    help="ask the model after every step instead of planning the task first")
+    ap.add_argument("--no-cache", action="store_true", help="don't reuse or save plans")
     a = ap.parse_args()
     if a.task is None:
         from . import chat
@@ -239,6 +242,12 @@ def main():
     from . import permissions
     if not permissions.request(interactive=sys.stdin.isatty()):
         sys.exit(2)
+    if not a.no_plan:
+        from .planner import run_planned
+        r, _ = asyncio.run(run_planned(a.task, model=a.model, effort=a.effort, timeout_s=a.timeout,
+                                       log_path=a.log or new_log_path("task"), fallbacks=not a.no_fallbacks,
+                                       verbose=a.verbose, use_cache=not a.no_cache))
+        sys.exit(0 if r.status == "done" else 1)
     r = asyncio.run(run_task(a.task, model=a.model, effort=a.effort, timeout_s=a.timeout,
                              log_path=a.log or new_log_path("task"), fallbacks=not a.no_fallbacks,
                              verbose=a.verbose))

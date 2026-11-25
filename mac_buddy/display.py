@@ -165,6 +165,11 @@ class Printer:
                   + (f"  {C['b']}{data.get('answer')}{C['x']}" if data.get("answer") else ""))
             ev = data.get("evidence") or ""
             print(f"         {C['dim']}evidence: {ev if self.verbose else _clip(ev, 3 * _width())}{C['x']}")
+        elif kind == "plan":
+            src = "saved plan" if data.get("cached") else "plan"
+            print(stamp + f"{C['b']}{src}:{C['x']} {data.get('summary', '')}")
+            for n, say in enumerate(data.get("steps") or [], 1):
+                print(f"         {C['dim']}{n}. {say}{C['x']}")
         elif kind == "reply":
             print(f"{C['b']}{data['text']}{C['x']}")
         elif kind == "info":
