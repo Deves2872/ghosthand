@@ -1,8 +1,8 @@
 """Benchmark runner.
 
-    uv run ghosthand-bench --runs 5 --timeout 300            # all tasks
-    uv run ghosthand-bench --tasks t3,t8 --runs 3
-    uv run ghosthand-bench --report results/<dir>            # rebuild report
+    uv run mac-buddy-bench --runs 5 --timeout 300            # all tasks
+    uv run mac-buddy-bench --tasks t3,t8 --runs 3
+    uv run mac-buddy-bench --report results/<dir>            # rebuild report
 
 Each run: reset the task's data and apps, bring the "person" app (Stickies)
 to the front, start an independent focus monitor, run the agent, then check

@@ -92,5 +92,5 @@ t8 was then run again with nobody at the Mac. That rerun is the t8 row above: 5 
 
 ## Checks that don't use a model
 
-- `python -m ghosthand.bench.safety`: all checks pass. These are change between look and action, element gone, window gone, and accepted-but-ineffective.
-- `python -m ghosthand.bench.oracle t3` and `… t8`: scripted solutions through the server's tools pass, and the front app stays unchanged.
+- `python -m mac_buddy.bench.safety`: all checks pass. These are change between look and action, element gone, window gone, and accepted-but-ineffective.
+- `python -m mac_buddy.bench.oracle t3` and `… t8`: scripted solutions through the server's tools pass, and the front app stays unchanged.

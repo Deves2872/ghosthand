@@ -2,7 +2,7 @@
 agent uses. They prove a task is solvable through the server and validate the
 checkers, and t8 exercises background work while the person types.
 
-    uv run python -m ghosthand.bench.oracle t8
+    uv run python -m mac_buddy.bench.oracle t8
 """
 from __future__ import annotations
 
