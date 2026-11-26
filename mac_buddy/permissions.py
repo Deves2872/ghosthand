@@ -28,7 +28,8 @@ def responsible_app() -> str:
     """Name of the .app this process was started from, e.g. 'Terminal'."""
     pid = os.getpid()
     for _ in range(20):
-        out = subprocess.run(["ps", "-o", "ppid=,comm=", "-p", str(pid)],
+        # args, not comm: a bundle whose launcher is a script shows up as plain "bash" in comm
+        out = subprocess.run(["ps", "-o", "ppid=,args=", "-p", str(pid)],
                              capture_output=True, text=True).stdout.strip()
         if not out:
             break

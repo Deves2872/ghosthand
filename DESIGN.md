@@ -1,5 +1,7 @@
 # Design note
 
+> Sections 1–6 describe the agent core (the MCP server), which the benchmark measured. "Plan once" and "The buddy app" at the end describe what was built on top.
+
 ## What the model sees
 
 **`observe(app, window)`** returns a header and a compact tree of that window.
@@ -90,3 +92,34 @@ Other approaches tried and dropped along the way:
 - **Cursor movement.** The server never generates mouse events, so a cursor move is always the person. Benchmark runs are unattended.
 - **Focus attribution is a heuristic.** If the person happens to touch the keyboard or mouse in the same 1.5 s that an agent action brings forward an app that is *already running* and isn't the target (e.g. a file opening in an app that's already open), the switch would be blamed on the person. The Finder open guard blocks the known way this happens.
 - **The "person" app.** Stickies stands in for Notes, so that runs never create notes in the user's real, possibly synced, Notes account.
+
+## Plan once, run many steps
+
+The agent loop asks the model after *every* action. A 6-step save costs 6+ model calls, and each one re-sends the whole history. Most tasks are predictable from one look at the window, so `planner.py` does this instead:
+
+1. **Look, without the model.** It lists the running apps (names only: other apps' window titles are left out) and observes the target app's window.
+2. **Plan, in one call.** The output is schema-guaranteed JSON. Each step names its tool, a plain-language caption (used by tutorials), the element it targets *by role, label and id* (not by a session-specific `e12`), and what its result must show: `changed`, `saved`, `new_window`, or some text.
+3. **Run, with no model calls.** Before each step, its target is resolved against a fresh observation. Every result is checked against the step's expectations, and a STALE refusal is retried once.
+4. **Re-plan once if the plan was made blind.** If the app wasn't open, the planner couldn't see the document, so it guesses (in testing it added a blank line it didn't need). After the step that opens the window, the rest is planned again from what's really there.
+5. **Recover.** On the first surprise (an element not found, an expectation not met, an error), the normal agent loop takes over, with a summary of what was already done.
+6. **Remember.** A plan that ran clean is cached under the request's text. Next time it runs with zero planning calls and is still checked step by step. A cached plan that fails is deleted.
+
+Measured on "add a line to notes.txt and save it" with TextEdit closed:
+
+| mode | model calls | tokens in / out | time |
+|---|---|---|---|
+| step-by-step agent (similar task) | 6 | ~31k / ~480 | 16.5 s |
+| planned, first time | 2 | 7.9k / 1.0k | 17.4 s |
+| saved plan | 0 | 0 | 5.5 s |
+| saved plan, sabotaged (recovery path) | 4 | 21.9k / 0.4k | 13.0 s |
+
+The benchmark tables in RESULTS.md were measured with the step-by-step agent. They are not re-run with the planner.
+
+## The buddy app
+
+- **Doesn't take your focus while it works.** The chat is a non-activating panel, so typing in it doesn't make Mac Buddy the front app. After you send a request, the panel stops taking keystrokes, and the same holds while a tutorial waits for you. An early version did take the keyboard when a tutorial step appeared, so a Space typed in another app pressed its "I did it" button. The step buttons now accept only clicks.
+- **"I did it" is checked, not trusted.** When the person says they did a tutorial step, the planner compares the window, or the document on disk, with how it was before the step. For opening a document, it checks that a window with that file's name exists. If nothing changed, the step is shown again with "I don't see that change yet".
+- **Tutorials show the app.** In "Show me how", the step's app is brought forward (the person asked to watch), and the server's focus watch is reset after each activation, so the buddy's own activation isn't reported as a focus steal. The ghost pointer is drawn on a click-through overlay. The optional real-pointer mode moves the cursor with `CGWarpMouseCursorPosition`, which posts no events, and hands control back to the person as soon as they move the mouse.
+- **Permissions are asked for when needed, with one button.** The microphone uses the system's own dialog. Accessibility (macOS has no such dialog for it) opens System Settings on the exact pane, then the buddy polls and carries on by itself. If a tool reports the permission missing mid-task, the buddy asks again, then retries that step.
+- **Voice runs on the Mac.** whisper.cpp `base` transcribes 3 s of speech in about 0.8 s on an M-series Mac. Its prompt lists Mac app names, so "text edit" comes out as "TextEdit".
+- **A bundle of its own.** `Mac Buddy.app` is a thin, ad-hoc-signed bundle around the project's environment. Its launcher isn't an `exec`, so macOS lists permissions under "Mac Buddy" and not under Python or the terminal. It needs the project folder to stay where it was built; a self-contained, notarized build is future work.

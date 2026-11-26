@@ -545,6 +545,81 @@ def harness_begin_task() -> str:
     return "ok"
 
 
+def _frame(el) -> dict | None:
+    pos, size = ax.get(el, "AXPosition"), ax.get(el, "AXSize")
+    if pos is None or size is None:
+        return None
+    try:
+        import ApplicationServices as AS
+        ok, p = AS.AXValueGetValue(pos, AS.kAXValueCGPointType, None)
+        ok2, z = AS.AXValueGetValue(size, AS.kAXValueCGSizeType, None)
+        if not (ok and ok2):
+            return None
+        return {"x": p.x, "y": p.y, "w": z.width, "h": z.height}
+    except Exception:
+        return None
+
+
+@mcp.tool()
+def harness_element_frame(window: str, element: str) -> str:
+    """(Harness only.) Screen frame of an element, top-left origin, as JSON; {} if unknown."""
+    import json
+    try:
+        w = _win(window)
+        snap = _snap(w)
+        n = _node(w, snap, element)
+        return json.dumps(_frame(n.ref) or {})
+    except (ToolError, ax.AXError):
+        return "{}"
+
+
+@mcp.tool()
+def harness_menu_frame(window: str, title: str) -> str:
+    """(Harness only.) Screen frame of a menu-bar title (e.g. "File") of the window's app."""
+    import json
+    try:
+        w = _win(window)
+        for top in _menu_children(_menu_root(w)):
+            if _norm(str(ax.get(top, "AXTitle") or "")) == _norm(title):
+                return json.dumps(_frame(top) or {})
+    except (ToolError, ax.AXError):
+        pass
+    return "{}"
+
+
+@mcp.tool()
+def harness_doc_state(window: str) -> str:
+    """(Harness only.) The window's document file state (mtime, size) as JSON, or null."""
+    import json
+    try:
+        w = _win(window)
+        snap = _snap(w)
+        return json.dumps(S.file_state(snap.document) if snap.document else None)
+    except (ToolError, ax.AXError):
+        return "null"
+
+
+@mcp.tool()
+def harness_app_window_frame(app: str) -> str:
+    """(Harness only.) Screen frame of an app's main window, or {}."""
+    import json
+    a = ax.find_app(app)
+    if a is None:
+        return "{}"
+    wins = ax.windows(a)
+    return json.dumps(_frame(wins[0]) or {}) if wins else "{}"
+
+
+@mcp.tool()
+def harness_window_frame(window: str) -> str:
+    """(Harness only.) Screen frame of a window."""
+    import json
+    try:
+        return json.dumps(_frame(_win(window).el) or {})
+    except (ToolError, ax.AXError):
+        return "{}"
+
+
 @mcp.tool()
 @_tool
 def launch_app(app: str, document: str | None = None) -> str:

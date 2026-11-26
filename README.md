@@ -1,10 +1,37 @@
-# mac-buddy: a background macOS computer-use agent over the accessibility tree
+# Mac Buddy
 
-- **`mac_buddy/server.py`** is an MCP server (stdio). It observes one window through the AX tree and acts on it: click, set or replace text, keys, menus, scroll, select rows. After every action it returns what changed in that window, a focus report, and whether the document's file on disk changed.
-- **`mac_buddy/harness.py`** runs one task with one command and streams every tool call and its changes live. It also writes a JSONL log.
-- **`mac_buddy/bench/`** has 8 benchmark tasks with synthetic data, checkers that work independently of the agent, a simulated person who types in another app, scripted reference solutions and safe-failure checks.
+A helper for your Mac. Hold **⌘ and double-click** anywhere, and a chat opens next to your pointer. Ask for anything in any app, by typing or talking. Mac Buddy either does it **in the background**, without touching your keyboard, pointer or front app, or **shows you how** with a ghost pointer that glides to each button.
+
+**Not a developer?** Read the [guide](GUIDE.md).
+
+## How it's built
+
+- **`mac_buddy/app/`**: the menu bar app.
+  - `main.py`: the triggers (⌘ double-click, ⌃⌥Space, the menu) and onboarding.
+  - `panel.py`: the chat panel. It never takes your keyboard while it works.
+  - `overlay.py`: the tutorial's ghost pointer, highlight and captions.
+  - `voice.py`: local Whisper speech-to-text.
+  - `perms.py`: one-click permission popups that open the exact Settings pane.
+  - `keychain.py`: the API key, stored in the Keychain.
+  - `worker.py`: runs requests on a background thread.
+- **`mac_buddy/planner.py`**: plans a task **once**, runs every step without the model, and checks each result. It goes back to the model only when something doesn't go to plan, and it remembers plans that worked.
+- **`mac_buddy/server.py`**: an MCP server (stdio). It observes one window through the accessibility tree and acts on it: click, set or replace text, keys, menus, scroll, select rows. After every action it returns what changed in that window, a focus report, and whether the document's file on disk changed.
+- **`mac_buddy/harness.py`** and **`chat.py`**: the terminal versions, for a single task or a chat, with live output and a JSONL log.
+- **`mac_buddy/bench/`**: 8 benchmark tasks with synthetic data, independent checkers, a simulated person who types in another app, scripted reference solutions and safe-failure checks.
 
 Design note: [DESIGN.md](DESIGN.md). Results: [RESULTS.md](RESULTS.md).
+
+## The app
+
+```bash
+uv sync
+uv run python scripts/build_app.py --install   # builds Mac Buddy.app and copies it to ~/Applications
+open ~/Applications/"Mac Buddy.app"
+```
+
+It asks for your API key (stored in the Keychain) and for Accessibility permission, each in a single popup. For development, `uv run mac-buddy-app` runs it straight from the source.
+
+**Voice** uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (through `pywhispercpp`) on the Mac. The `base` model (~148 MB) is downloaded on first use into `~/Library/Application Support/mac-buddy/models`. Set `MAC_BUDDY_WHISPER=tiny` for a smaller model, or `small` for a more accurate one.
 
 ## Setup
 
@@ -24,7 +51,9 @@ Put the key in `.env` in this folder (it is git-ignored):
 echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 ```
 
-## Try it
+## Command line
+
+`mac-buddy "task"` plans first. It needs one model call (two if it has to open the window before it can see it), then runs the steps, and a repeated request reuses the saved plan with **no** model calls. Use `--no-plan` to ask the model after every step instead, as the benchmark does, and `--no-cache` to neither reuse nor save plans.
 
 Open any TextEdit document. Keep typing in another app if you like. Then run:
 
