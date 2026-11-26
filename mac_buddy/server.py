@@ -106,6 +106,11 @@ def _guard_fresh(w: Win, targets: list[str] | None = None) -> S.Snapshot:
     changes = S.diff(old, s)
     structural = any(l.startswith(("+", "-", "~ window")) for l in changes)
     tkeys = [old.by_eid[t].key for t in (targets or []) if t in old.by_eid]
+    if w.app.bundle_id in BROWSERS and tkeys:
+        # Web pages change all the time (trailers, subtitles, ads, live counters). Only a new
+        # page, or a change to the target itself, makes acting on it unsafe.
+        tgt_gone = any(t not in {n.eid for n in s.nodes if n.rendered} for t in (targets or []) if t)
+        structural = tgt_gone or any(l.startswith("~ window") for l in changes)
     touched = []
     for n in s.nodes:
         o = old.by_eid.get(n.eid)
@@ -367,7 +372,26 @@ def observe(app: str, window: str | None = None) -> str:
     """Observe one window of an app (by app name or bundle id). `window` may be a
     window id from an earlier result (e.g. "w2") or part of a window title; default
     is the app's main window. Returns the window's element tree with ids like e12.
-    Ids stay the same for the same element across observations."""
+    Ids stay the same for the same element across observations. Big web pages are
+    shortened: use find(window, text) to search them."""
+    return _observe(app, window, full=False)
+
+
+@mcp.tool()
+def harness_observe_full(app: str, window: str | None = None) -> str:
+    """(Harness only.) observe() without shortening big pages, for resolving plan targets."""
+    try:
+        return _observe(app, window, full=True)
+    except (ToolError, ax.AXError) as e:
+        return f"ERROR: {e}"
+
+
+def _observe(app: str, window: str | None = None, full: bool = False) -> str:
+    """Observe one window of an app (by app name or bundle id). `window` may be a
+    window id from an earlier result (e.g. "w2") or part of a window title; default
+    is the app's main window. Returns the window's element tree with ids like e12.
+    Ids stay the same for the same element across observations. Big web pages are
+    shortened: use find(window, text) to search them."""
     if window and window in ST.windows:
         w = _win(window)
     else:
@@ -393,6 +417,8 @@ def observe(app: str, window: str | None = None) -> str:
             main = ax.get(a.el, "AXMainWindow")
             el = next((c for c in wins if ax.same(c, main)), wins[0])
         w = _register(a, el)
+    if _enable_web_ax(w.app):
+        time.sleep(1.5)  # the browser builds its page tree on request
     s = _snap(w)
     w.last = s
     parts = [_header(w, s)]
@@ -403,8 +429,260 @@ def observe(app: str, window: str | None = None) -> str:
     if others:
         parts.append("Other windows of this app: " + ", ".join(
             f"{_register(w.app, c).wid}={str(ax.get(c, 'AXTitle') or '')!r}" for c in others))
-    parts.append("TREE:\n" + S.render(s))
+    tree = S.render(s)
+    lines = tree.splitlines()
+    if not full and len(lines) > OBSERVE_MAX_LINES:
+        tree = "\n".join(lines[:OBSERVE_MAX_LINES]) + (
+            f"\n… {len(lines) - OBSERVE_MAX_LINES} more lines not shown (a big page). "
+            f"Use find({w.wid!r}, \"some text\") to search it, e.g. find({w.wid!r}, \"Play\").")
+    parts.append("TREE:\n" + tree)
     return "\n".join(parts)
+
+
+OBSERVE_MAX_LINES = 150
+CHROMIUM = {"com.google.Chrome", "com.google.Chrome.beta", "com.brave.Browser", "com.microsoft.edgemac",
+            "company.thebrowser.Browser", "org.chromium.Chromium", "com.vivaldi.Vivaldi", "com.operasoftware.Opera"}
+BROWSERS = CHROMIUM | {"com.apple.Safari"}
+_web_ax_on: set[int] = set()
+
+
+def _enable_web_ax(app: ax.App) -> bool:
+    """Chromium builds its web-page accessibility tree only when something asks
+    (screen readers set AXEnhancedUserInterface). Returns True the first time."""
+    if app.bundle_id not in CHROMIUM or app.pid in _web_ax_on:
+        return False
+    _web_ax_on.add(app.pid)
+    try:
+        ax.set_attr(app.el, "AXEnhancedUserInterface", True)
+    except ax.AXError:
+        pass  # Chrome reports "not implemented" but builds the tree anyway
+    return True
+
+
+@mcp.tool()
+@_tool
+def find(window: str, text: str, role: str | None = None, limit: int = 25) -> str:
+    """Search the window's elements for `text` (case-insensitive) in their label,
+    value or description; optionally only one role (e.g. "Link", "Button").
+    Use it on big web pages instead of reading the whole tree. Returns matching
+    elements with ids you can click, in page order."""
+    w = _win(window)
+    s = _snap(w)
+    w.last = s
+    q = text.lower().strip()
+    if len(q) < 2:
+        raise ToolError("find needs at least 2 characters to search for (e.g. \"Play\", \"Resume\").")
+    want = (role or "").lower().removeprefix("ax")
+    hits = []
+    for n in s.nodes:
+        if want and n.role.lower().removeprefix("ax") != want:
+            continue
+        hay = " ".join(str(x) for x in (n.title, n.value, n.desc, n.ident) if x).lower()
+        if q in hay and n.eid:
+            hits.append(S.render_node(n))
+            if len(hits) >= limit:
+                break
+    head = f"find {text!r}" + (f" (role {role})" if role else "") + f" in {w.wid} '{s.window_title}': "
+    if not hits:
+        return head + "no matches. Try a shorter or different word, or scroll and look again."
+    return head + f"{len(hits)} match(es)\n" + "\n".join(hits)
+
+
+@mcp.tool()
+@_tool
+def open_url(url: str, browser: str = "Google Chrome") -> str:
+    """Open a web page in a NEW background tab of the browser (Google Chrome by
+    default; Safari also works). The person's front app stays as it is. Returns the
+    tab's window id; observe or find it once it has loaded."""
+    import subprocess
+    if not url.startswith(("http://", "https://", "file://")):
+        url = "https://" + url
+    a0 = ax.find_app(browser)
+    m0 = ax.get(a0.el, "AXMainWindow") if a0 else None
+    title_before = str(ax.get(m0, "AXTitle") or "") if m0 is not None else ""
+    with FocusMonitor() as mon:
+        # `open -g` hands the URL to the browser without bringing it forward (AppleScript's
+        # "make new tab" activates Chrome). It opens in a new tab of the front window.
+        r = subprocess.run(["open", "-g", "-a", browser, url], capture_output=True, text=True, timeout=30)
+        if r.returncode != 0:
+            raise ToolError(f"could not open the page: {(r.stderr or r.stdout).strip()}. Nothing was opened.")
+        a = ax.find_app(browser)
+        t0 = time.time()
+        win = None
+        while a and time.time() - t0 < 12:
+            if _enable_web_ax(a):
+                time.sleep(0.5)
+            main = ax.get(a.el, "AXMainWindow") or (ax.windows(a) or [None])[0]
+            title = str(ax.get(main, "AXTitle") or "") if main is not None else ""
+            if main is not None and title and title != title_before and \
+                    not title.startswith(("Untitled", "New Tab")):
+                win = main
+                break
+            time.sleep(0.3)
+    if a is None or win is None:
+        return f"OPENED {url} in {browser}, but the page hasn't loaded yet; observe({browser!r}) in a moment."
+    w = _register(a, win)
+    w.last = _snap(w)
+    return (f"OPENED {url} in a new {browser} tab → window {w.wid} '{w.last.window_title}'\n"
+            f"{mon.report().line(a.pid)}\nNext: find({w.wid!r}, \"…\") or observe({browser!r}, window={w.wid!r}).")
+
+
+def _walk_all(el, depth=0):
+    for c in ax.get(el, "AXChildren") or []:
+        yield c
+        if depth < 25:
+            yield from _walk_all(c, depth + 1)
+
+
+def _media_panel(a: ax.App):
+    for w in ax.windows(a):
+        if str(ax.get(w, "AXTitle") or "") == "Global Media Controls":
+            return w
+    return None
+
+
+def _media_toggle(a: ax.App):
+    cands = []
+    for w in ax.windows(a):
+        cands += [(w, c) for c in _walk_all(w) if ax.get(c, "AXRole") == "AXButton" and
+                  str(ax.get(c, "AXTitle") or ax.get(c, "AXDescription") or "").startswith("Control your music")]
+    return ([(w, b) for w, b in cands if (_frame(b) or {}).get("w", 0) > 0] or cands or [(None, None)])[0]
+
+
+_MEDIA_CLOSED_AT = [0.0]
+MEDIA_REOPEN_S = 3.2  # Chrome ignores the toggle for ~3 s after its popup closes (measured)
+
+
+def _close_media_panel(a: ax.App):
+    """Put the media panel away, and make sure it went."""
+    for _ in range(3):
+        if _media_panel(a) is None:
+            _MEDIA_CLOSED_AT[0] = time.time()
+            return
+        w, btn = _media_toggle(a)
+        if btn is None:
+            return
+        synthfocus.focus_window(a.pid, w)
+        try:
+            ax.perform(btn, "AXPress")
+        except ax.AXError:
+            pass
+        time.sleep(0.5)
+
+
+@mcp.tool()
+@_tool
+def media_control(action: str = "status", site: str | None = None, browser: str = "Google Chrome") -> str:
+    """Check or control what's playing in the browser, on any site (YouTube, Netflix,
+    Prime Video…), through Chrome's own media controls. action: "status", "play" or
+    "pause". `site` (e.g. "netflix") picks one when several are playing. This is the
+    reliable way to know whether something is really playing or paused."""
+    a = ax.find_app(browser)
+    if a is None:
+        raise ToolError(f"{browser!r} is not running.")
+    action = action.lower().strip()
+    if action not in ("status", "play", "pause"):
+        raise ToolError('action must be "status", "play" or "pause".')
+    panel = _media_panel(a)
+    opened = False
+    if panel is None:
+        cands = []
+        for w in ax.windows(a):
+            cands += [(w, c) for c in _walk_all(w) if ax.get(c, "AXRole") == "AXButton" and
+                      str(ax.get(c, "AXTitle") or ax.get(c, "AXDescription") or "").startswith("Control your music")]
+        if not cands:
+            return f"NOTHING PLAYING: {browser} shows no media controls (no tab has played sound or video)."
+        # Chrome can hold a hidden, zero-size copy of the button: use a visible one
+        visible = [(w, b) for w, b in cands if (_frame(b) or {}).get("w", 0) > 0] or cands
+        w, btn = visible[0]
+        wait = MEDIA_REOPEN_S - (time.time() - _MEDIA_CLOSED_AT[0])
+        if wait > 0:
+            time.sleep(wait)
+        for attempt in range(2):
+            # The button toggles, and Chrome's idea of whether its popup is open can be out of step
+            # with the screen: then the first press "closes" it, and Chrome ignores presses for ~3 s
+            # after a close. So: press; if nothing appeared, wait that out and press once more.
+            if attempt:
+                time.sleep(MEDIA_REOPEN_S)
+            synthfocus.focus_window(a.pid, w)
+            try:
+                ax.perform(btn, "AXPress")
+            except ax.AXError:
+                pass
+            t0 = time.time()
+            while panel is None and time.time() - t0 < 1.5:
+                time.sleep(0.1)
+                panel = _media_panel(a)
+            if panel is not None:
+                break
+        opened = True
+        if panel is None:
+            # Chrome's popup can refuse to open (see above). Fall back to the windows' titles.
+            playing = [str(ax.get(w, "AXTitle") or "") for w in ax.windows(a)
+                       if "Audio playing" in str(ax.get(w, "AXTitle") or "")]
+            msg = ("couldn't open Chrome's media controls just now (it sometimes refuses for a few seconds; "
+                   "try again). From the window titles: "
+                   + ("; ".join(t.split(" – Audio playing")[0] for t in playing) + " has sound playing"
+                      if playing else "no front tab is playing sound")
+                   + " (titles can lag a few seconds after a pause).")
+            if action == "status":
+                return "MEDIA (approximate): " + msg
+            raise ToolError(msg + " To pause or play, use the page's own control instead (see the browser notes).")
+    items = []  # (site label, play/pause button, state)
+    for g in _walk_all(panel):
+        if ax.get(g, "AXRole") != "AXGroup":
+            continue
+        kids = list(_walk_all(g, 20))
+        texts = [str(ax.get(k, "AXValue") or "") for k in kids if ax.get(k, "AXRole") == "AXStaticText"]
+        pp = next((k for k in kids if ax.get(k, "AXRole") == "AXButton" and
+                   (ax.get(k, "AXDescription") or ax.get(k, "AXTitle")) in ("Play", "Pause")), None)
+        if pp is not None and texts:
+            label = " · ".join(t for t in texts if t)[:80]
+            state = "playing" if (ax.get(pp, "AXDescription") or ax.get(pp, "AXTitle")) == "Pause" else "paused"
+            j = next((n for n, i in enumerate(items) if ax.same(i[1], pp)), None)
+            if j is None:
+                items.append((label, pp, state))
+            elif len(label) < len(items[j][0]):  # the innermost group (fewest texts) names it best
+                items[j] = (label, pp, state)
+    lines = []
+    if action != "status":
+        pick = [i for i in items if not site or site.lower() in i[0].lower()]
+        want = "playing" if action == "play" else "paused"
+        for label, btn, state in pick[:1]:
+            if state != want:
+                synthfocus.focus_window(a.pid, panel)
+                ax.perform(btn, "AXPress")
+                time.sleep(0.8)
+            lines.append(f"{action.upper()}: {label}")
+        if not pick:
+            lines.append(f"ERROR: nothing matching {site!r} in the media controls.")
+        items = [(l, b, "playing" if (ax.get(b, "AXDescription") or ax.get(b, "AXTitle")) == "Pause" else "paused")
+                 for l, b, _ in items]
+    lines += [f"- {label}: {state}" for label, _, state in items] or ["(no media)"]
+    _close_media_panel(a)
+    return "MEDIA in " + browser + ":\n" + "\n".join(lines)
+
+
+@mcp.tool()
+@_tool
+def bring_to_front(app: str, reason: str) -> str:
+    """Bring an app to the front so the person can see it. ONLY when the task is to
+    watch, play or show something (e.g. a video), or the person asked to see the app.
+    `reason` says why, in a few words."""
+    import subprocess
+    a = ax.find_app(app)
+    if a is None:
+        raise ToolError(f"{app!r} is not running.")
+    subprocess.run(["open", "-a", a.name], check=False)
+    t0 = time.time()
+    while time.time() - t0 < 3 and front_app()[0] != a.pid:
+        time.sleep(0.05)
+    time.sleep(0.3)
+    WATCH.drain()  # asked-for activation, not a focus steal
+    WATCH.front = front_app()
+    ok = front_app()[0] == a.pid
+    return (f"BROUGHT {a.name} TO THE FRONT at the person's request ({reason})." if ok else
+            f"Asked {a.name} to come to the front, but it didn't ({front_app()[1]!r} is in front).")
 
 
 @mcp.tool()

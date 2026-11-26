@@ -33,8 +33,34 @@ APP_NOTES = {
         "Stickies has no Save command: it writes a note to disk by itself about 2 s after an edit. "
         "To confirm a save, call wait_for_save on the note's window after editing."
     ),
+    "com.google.Chrome": (
+        "Web pages are big: use find(window, text, role) to locate links and buttons instead of reading the "
+        "whole tree. open_url(url) opens a page in a new background tab. To know whether a video is really playing, "
+        "and to play or pause it on ANY site, use media_control('status'|'play'|'pause') — it reads Chrome's own "
+        "media controls (a tab's title also says '– Audio playing', but that lags after a pause). If "
+        "media_control can't open them, wait a few seconds and try once more, or use the page's own control: "
+        "YouTube's Button 'Pause (k)'; on Netflix and Prime Video the controls are hidden while playing, so click "
+        "the player itself (the big Group around the video) to pause or play. "
+        "Searching sites by URL is the most reliable way: "
+        "YouTube https://www.youtube.com/results?search_query=WORDS (the first results can be ads: their links "
+        "talk about products; videos show a duration like '3:30' or '1 hour, 1 minute'); clicking a video link "
+        "opens it and it starts playing; Pause/Play is the Button 'Pause (k)'/'Play (k)'. YouTube often plays an AD first: a Button "
+        "'Skip' appears after a few seconds — find it again until it appears, then click it; the video only counts "
+        "as playing once 'Skip' is gone and the title says 'Audio playing'. "
+        "Netflix https://www.netflix.com/search?q=WORDS — if a 'Who's watching?' profile picker appears and the "
+        "task doesn't name a profile, ask the person which one (finish failed with the question); open the title, "
+        "then press its 'Resume' or 'Play' button (for a series, pick the season/episode if the task names one). "
+        "Prime Video https://www.primevideo.com/search/?phrase=WORDS — open the title, then 'Resume', 'Play', "
+        "'Continue watching' or 'Watch now'. "
+        "NEVER click anything that costs money or signs up: Buy, Rent, Subscribe, Start free trial, Join Prime, "
+        "Upgrade, Add channel. If the title isn't included in the person's plan, say so and stop. Never type "
+        "passwords or payment details. If a site asks to sign in, stop and tell the person. "
+        "When the task is to watch or play something, finish with bring_to_front(app, 'to watch …') once it is "
+        "playing, so the person can see it."
+    ),
     "com.apple.Notes": (
         "Notes shows the folder list, the note list and the selected note's body (a text area). "
         "Read long bodies with read_text."
     ),
 }
+APP_NOTES["com.apple.Safari"] = APP_NOTES["com.google.Chrome"].replace("Google Chrome", "Safari")

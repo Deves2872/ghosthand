@@ -79,6 +79,8 @@ class Worker:
         def _cancel():
             if self._decision and not self._decision.done():
                 self._decision.set_result("stop")
+            if getattr(self, "_confirm", None) is not None and not self._confirm.done():
+                self._confirm.set_result(False)
             if self.current and not self.current.done():
                 self.current.cancel()
         self.loop.call_soon_threadsafe(_cancel)
@@ -127,6 +129,20 @@ class Worker:
             from . import perms
             AppHelper.callAfter(perms.ask, kind, lambda ok: self.loop.call_soon_threadsafe(fut.set_result, ok))
             return await fut
+
+        from .. import terminal
+
+        async def confirm_command(command: str, why: str, risky: list) -> bool:
+            fut = self.loop.create_future()
+            self._confirm = fut
+            AppHelper.callAfter(self.ui.ask_command, command, why, risky,
+                                lambda ok: self.loop.call_soon_threadsafe(
+                                    lambda: fut.done() or fut.set_result(bool(ok))))
+            try:
+                return await fut
+            finally:
+                self._confirm = None
+        terminal.confirm = confirm_command
 
         async def go():
             return await plan_and_run(text, self.session, self.client, self.sink, model=self.model,

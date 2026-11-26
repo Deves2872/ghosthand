@@ -19,6 +19,8 @@ Type what you want and press **Return**, or hold the 🎤 microphone button and 
 - "In TextEdit, add the line 'call mom' to my notes and save it."
 - "Make a new sticky note that says 'dentist on Friday'."
 - "How many files are in my Downloads folder?"
+- "Play Stranger Things on Netflix."
+- "Take notes of this meeting."
 
 Above the text box you can choose:
 
@@ -31,6 +33,40 @@ Above the text box you can choose:
   Want the buddy to move your *real* pointer instead? In the 👋 menu, choose **Use my real pointer in "Show me how"**. If you grab the mouse, it lets go right away.
 
 When it finishes, Mac Buddy says **✓ Done** only after it has checked the result: for example, that the file was really saved. If something didn't work, it tells you what went wrong instead of pretending.
+
+## Watching something
+
+Ask in your own words, for example:
+
+- "Play the Lofi Girl live stream on YouTube."
+- "Resume The Rookie on Prime Video."
+- "Play episode 3 of Stranger Things season 2 on Netflix."
+
+Mac Buddy opens the site in a new Chrome tab in the background, finds the right title (skipping ads), presses Play or Resume, and then brings Chrome to the front so you can watch. Mac Buddy:
+
+- **uses your existing sign-ins** and never types a password;
+- **never buys, rents or subscribes**: if something isn't in your plan, it tells you;
+- **asks which profile** if Netflix asks "Who's watching?" and you didn't say;
+- **tells you if there's nothing to resume** (for example, you've finished the series), instead of guessing.
+
+"Pause it" and "Is it still playing?" work too.
+
+## Meeting notes
+
+In a meeting you're part of (Google Meet in Chrome, Zoom or Microsoft Teams), say or type "Take notes of this meeting", or choose **Take meeting notes…** in the 👋 menu.
+
+1. **Tell the others first.** Mac Buddy asks you to confirm you've told everyone that you're taking notes. It's the polite thing to do, and in many places the law requires it. Mac Buddy never joins meetings for you or hides that notes are being taken.
+2. **It reads the captions.** It switches on the meeting's live captions if they're off, then reads them as they appear. It doesn't record any audio.
+3. **A badge shows it's running.** "📝 Taking notes", with a timer, stays in the corner of your screen.
+4. **Click Stop when you're done.** You get a summary, the decisions, the action items with who's doing them, and open questions. They're saved in **Documents ▸ Mac Buddy Notes**, along with the captions.
+
+## Running a Terminal command
+
+Ask things like "Open Terminal and check how much free disk space I have." Mac Buddy shows you the **exact command** and why it wants to run it, then waits for you to click **Run** or **Cancel**. It asks every time.
+
+Commands that delete files, need your password (sudo), install software or change system settings are marked **⚠ Careful** in red. The command runs in a Terminal window you can see, and Mac Buddy reads the result back to you.
+
+The first time Mac Buddy uses Chrome or Terminal, your Mac asks whether Mac Buddy may control it. Click **OK**.
 
 ## Talking instead of typing
 

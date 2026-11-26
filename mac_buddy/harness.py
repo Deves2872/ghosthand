@@ -31,6 +31,7 @@ How to work:
 - If an app the task needs is not running, start it with launch_app (it starts in the background), then observe it. Launch only apps, and open only documents, that the task needs.
 - If the task refers to "the open document" (or similar) but the app has no document open and the task names no file, create one with new_document(app) and do the task in it. Don't open recent files or guess which file was meant. If the task says to save, save it as plain text in ~/Documents as "Untitled.txt"; if that name is taken use "Untitled 2.txt", "Untitled 3.txt", … — never replace an existing file. Report in `answer` that you created a new document and its full path.
 - Never open files any other way: Finder's Open, cmd+o, cmd+down on a file or a double-click starts the file's app IN FRONT of the person. To enter a folder in Finder, select only that folder first.
+- Never choose an account, profile, payment option or plan for the person (e.g. Netflix's "Who's watching?"), unless the task names it: ask them instead (finish with status "failed" and the question in `answer`). Never type passwords, and never buy, rent, subscribe or start a trial.
 - Prefer precise edits (replace_text, insert_text) over retyping whole documents.
 - Before finishing, verify the outcome in the UI itself: e.g. after saving, the sheet is gone, the window title is the file name, it is not marked Edited, and the server reported the file was written; after an edit, read back the text.
 - Finish by calling finish exactly once. status="done" only when you have verified the outcome; otherwise status="failed" with what is wrong. Do not claim success you have not seen. Put any value you were asked to report in `answer`, exactly as it appears in the app."""
@@ -85,10 +86,23 @@ def _server_params() -> StdioServerParameters:
 
 
 def model_tools(listed) -> list:
-    """The server's tools as offered to the model (harness-only tools left out), plus finish."""
+    """The server's tools as offered to the model (harness-only tools left out), plus the
+    tools that run here on the buddy's side (run_command)."""
+    from . import terminal
     tools = [{"name": t.name, "description": t.description or "", "input_schema": t.inputSchema}
              for t in listed.tools if not t.name.startswith("harness_")]
-    return tools
+    return tools + [terminal.TOOL]
+
+
+async def call_tool(session, name: str, args: dict) -> tuple[str, bool]:
+    """Run a tool: local ones here, the rest through the MCP server. (text, is_error)"""
+    if name == "run_command":
+        from . import terminal
+        text = await terminal.run_command(args.get("command", ""), args.get("why", ""))
+        return text, text.startswith("ERROR")
+    out = await session.call_tool(name, args)
+    text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
+    return text, bool(out.isError)
 
 
 async def run_turns(session, client, tools: list, messages: list, res: RunResult, pr: "Printer",
@@ -150,9 +164,7 @@ async def run_turns(session, client, tools: list, messages: list, res: RunResult
                                 "content": "not run: task already finished"})
                 continue
             try:
-                out = await session.call_tool(u.name, u.input)
-                text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
-                is_err = bool(out.isError)
+                text, is_err = await call_tool(session, u.name, u.input)
             except Exception as e:  # transport-level failure
                 text, is_err = f"ERROR: tool call failed: {e}", True
             if "FOCUS MOVED" in text:

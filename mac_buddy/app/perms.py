@@ -28,6 +28,9 @@ WHY = {
                       "Mac Buddy reads buttons and text in your apps and presses them for you, in the "
                       "background. macOS asks you to switch this on once.\n\nClick “Open Settings”, then turn "
                       "on “{app}”. Mac Buddy carries on by itself."),
+    "automation": ("Let Mac Buddy use Chrome and Terminal",
+                   "To open web pages and run commands you approve, macOS asks you to let Mac Buddy control "
+                   "those apps. Click “Open Settings”, then under {app} switch on Google Chrome and Terminal."),
     "microphone": ("Let Mac Buddy hear you",
                    "So you can talk instead of type. Your voice is turned into text on this Mac; "
                    "nothing is sent anywhere."),
@@ -44,12 +47,27 @@ def _avcapture():
     return _AV
 
 
+def modal(alert) -> int:
+    """Show an alert (our app must be active for that), then hand focus straight back to
+    the app the person was using."""
+    from ..focus import front_app
+    prev_pid = front_app()[0]
+    AppKit.NSApp.activateIgnoringOtherApps_(True)
+    r = alert.runModal()
+    me = AppKit.NSRunningApplication.currentApplication().processIdentifier()
+    if prev_pid and prev_pid != me:
+        ra = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(prev_pid)
+        if ra is not None:
+            ra.activateWithOptions_(0)
+    return r
+
+
 def granted(kind: str) -> bool:
     if kind == "accessibility":
         return bool(AS.AXIsProcessTrusted())
     if kind == "microphone":
         return _avcapture().authorizationStatusForMediaType_("soun") == 3  # authorized
-    return True
+    return False  # automation: can't be checked ahead; it's asked for when macOS refuses
 
 
 def app_name() -> str:
@@ -76,8 +94,7 @@ def ask(kind: str, on_done: Callable[[bool], None], wait_s: float = 180.0):
     alert.addButtonWithTitle_("Not now")
     alert.setIcon_(AppKit.NSImage.imageWithSystemSymbolName_accessibilityDescription_(
         "hand.raised.fill" if kind == "accessibility" else "mic.fill", None))
-    AppKit.NSApp.activateIgnoringOtherApps_(True)  # the person asked us for something; show the alert
-    if alert.runModal() != AppKit.NSAlertFirstButtonReturn:
+    if modal(alert) != AppKit.NSAlertFirstButtonReturn:
         on_done(False)
         return
     if kind == "microphone":
@@ -89,6 +106,16 @@ def ask(kind: str, on_done: Callable[[bool], None], wait_s: float = 180.0):
             _avcapture().requestAccessForMediaType_completionHandler_("soun", handler)
             return
         open_pane("microphone")  # asked before and refused: only Settings can change it
+    elif kind == "automation":
+        # macOS has no "is this allowed?" check we can poll, so ask the person when they're done
+        open_pane(kind)
+        done = AppKit.NSAlert.alloc().init()
+        done.setMessageText_("Switched it on?")
+        done.setInformativeText_("Click Continue once Google Chrome and Terminal are on for Mac Buddy.")
+        done.addButtonWithTitle_("Continue")
+        done.addButtonWithTitle_("Cancel")
+        on_done(modal(done) == AppKit.NSAlertFirstButtonReturn)
+        return
     else:
         AS.AXIsProcessTrustedWithOptions({AS.kAXTrustedCheckOptionPrompt: True})
         open_pane(kind)

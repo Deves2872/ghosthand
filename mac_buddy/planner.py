@@ -31,12 +31,14 @@ from typing import Awaitable, Callable
 
 import anthropic
 
-from .harness import FINISH_TOOL, SYSTEM, RunResult, model_tools, run_turns
+from .harness import FINISH_TOOL, SYSTEM, RunResult, call_tool, model_tools, run_turns
 
 CACHE_PATH = os.path.expanduser("~/Library/Application Support/mac-buddy/plans.json")
 
 EXPECT = ["ok", "changed", "saved", "new_window", "window_closed"]
-NO_WINDOW_TOOLS = {"list_apps", "observe", "launch_app", "new_document"}
+HANDOFF = "look_and_decide"  # a planned hand-over to the model, for what can't be known in advance
+NO_WINDOW_TOOLS = {"list_apps", "observe", "launch_app", "new_document", "open_url", "bring_to_front",
+                   "run_command"}
 # tools whose result alone can't show success (they only read)
 READ_TOOLS = {"list_apps", "observe", "read_text", "menu"}
 
@@ -49,7 +51,7 @@ def plan_schema(tool_names: list[str]) -> dict:
     step = {"type": "object", "additionalProperties": False,
             "properties": {
                 "say": {"type": "string"},
-                "tool": {"type": "string", "enum": tool_names},
+                "tool": {"type": "string", "enum": tool_names + [HANDOFF]},
                 "args_json": {"type": "string"},
                 "target": target,
                 "expect": {"type": "array", "items": {"type": "string", "enum": EXPECT}},
@@ -79,7 +81,9 @@ Write the plan as JSON:
   - report: true if this step's result holds what the task asks you to report.
 - Include every step: launching the app if it is not running, creating or opening the document, editing, saving, and confirming. Use wait_for_save for apps that save on their own. Don't add observe steps just to look; the program looks before every step with a target.
 - The last step that changes something must have an expectation that proves the task is done (e.g. "saved" after saving).
-- Never plan to open files through Finder, and never plan anything the task doesn't ask for."""
+- Never plan to open files through Finder, and never plan anything the task doesn't ask for.
+- Some choices can only be made after looking: which search result is the right video, which episode is next, what a page says. Plan everything up to that point, then ONE step with tool "look_and_decide" whose say describes what to decide and do (e.g. "Pick the real result for the series (not an ad), open it and press Resume or Play, then bring Chrome to the front"). Everything after it is left to that step. Use it as late as possible.
+- For websites, prefer opening the site's search page with open_url (see the browser notes) over typing into search boxes."""
 
 
 def _strip_titles(list_apps_text: str, keep_app: str | None) -> str:
@@ -97,8 +101,11 @@ def _strip_titles(list_apps_text: str, keep_app: str | None) -> str:
 def _guess_app(task: str, apps_text: str) -> str | None:
     names = re.findall(r"^- (.+?) \[", apps_text, re.M)
     known = names + ["TextEdit", "Stickies", "Notes", "Finder", "Numbers", "Pages", "Keynote",
-                     "Reminders", "Calendar", "Mail", "Safari", "Preview", "Music"]
+                     "Reminders", "Calendar", "Mail", "Safari", "Preview", "Music", "Terminal"]
     low = task.lower()
+    if re.search(r"\b(youtube|netflix|prime video|primevideo|google meet|meet\.google|website|web page|"
+                 r"browser|search the web|google for)\b", low) and "safari" not in low:
+        return "Google Chrome"
     squashed = re.sub(r"\s+", "", low)  # "text edit" (as people say it) is TextEdit
     for n in sorted(set(known), key=len, reverse=True):
         if re.search(r"\b" + re.escape(n.lower()) + r"\b", low) or \
@@ -172,7 +179,7 @@ def check(step: dict, text: str) -> str | None:
     for e in step.get("expect") or []:
         if e == "changed" and not any(k in text for k in (
                 "CHANGES in", "+ NEW WINDOW", "read-back matches", "LAUNCHED", "SAVED:", "was written",
-                "is already running")):
+                "is already running", "OPENED ", "BROUGHT ", "COMMAND FINISHED")):
             return "expected a change, but nothing visible changed"
         if e == "saved" and not ("was written" in text or text.startswith("SAVED:")):
             return "expected the file to be saved, but the disk didn't change"
@@ -229,6 +236,7 @@ class PlanRun:
     fell_back: bool = False
     planning_calls: int = 0
     notes: list = field(default_factory=list)
+    handoff_at: int | None = None
 
 
 def _tree_only(observe_text: str) -> str:
@@ -289,13 +297,15 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
         if not quiet:
             pr.event("call", name=name, input=args, elapsed=time.time() - t0)
         res.tool_calls += 1
-        out = await session.call_tool(name, args)
-        text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
+        text, _ = await call_tool(session, name, args)
         if "lacks Accessibility permission" in text and on_permission:
             # the permission was never given, or was turned off mid-task: ask, then retry
             if await on_permission("accessibility"):
-                out = await session.call_tool(name, args)
-                text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
+                text, _ = await call_tool(session, name, args)
+        if "AUTOMATION PERMISSION" in text and on_permission:
+            # macOS refused control of Chrome/Terminal: one popup to the exact Settings pane, then retry
+            if await on_permission("automation"):
+                text, _ = await call_tool(session, name, args)
         res.transcript.append({"name": name, "input": args, "result": text})
         return text
 
@@ -373,6 +383,9 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
         except ValueError:
             args = {}
         tool = step["tool"]
+        if tool == HANDOFF:
+            run.handoff_at = i
+            break
         if tool not in NO_WINDOW_TOOLS and "window" not in args:
             if win is None and app:
                 o = await call("observe", {"app": app}, quiet=True)
@@ -383,7 +396,7 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
         tgt = step.get("target") or {}
         frame: dict = {}
         if any(tgt.get(k) for k in ("role", "label", "ident")):
-            o = await call("observe", {"app": app, "window": win} if win else {"app": app}, quiet=True)
+            o = await harness("harness_observe_full", {"app": app, "window": win} if win else {"app": app})
             eid = resolve(tgt, parse_tree(o))
             if eid is None:
                 run.failed_step, run.failure = i, f"couldn't find {tgt} in the window"
@@ -434,7 +447,7 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
             run.failed_step, run.failure = i, why
             break
         run.steps_done += 1
-        m = re.findall(r"\+ NEW WINDOW (w\d+)", text)
+        m = re.findall(r"\+ NEW WINDOW (w\d+)", text) or re.findall(r"→ window (w\d+)", text)
         if m:
             win = m[-1]
         m = re.match(r"WINDOW (w\d+)", text)
@@ -455,6 +468,22 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
                 pr.event("plan", summary="Now that the window is open, the rest of the plan:",
                          steps=[s["say"] for s in steps[i + 1:]], cached=False, elapsed=time.time() - t0)
 
+    if run.handoff_at is not None and run.failed_step is None:
+        i = run.handoff_at
+        step = steps[i]
+        pr.event("info", text=f"step {i + 1}: looking and deciding ({step['say']})", elapsed=time.time() - t0)
+        done_lines = "\n".join(f"{n + 1}. {s['say']} ✓" for n, s in enumerate(steps[:i]))
+        note = (f"{task}\n\n(Steps already done by a pre-made plan:\n{done_lines or '(none)'}\n"
+                + (f"Current window: {win}.\n" if win else "")
+                + f"Now do this part, which needed a look first: {step['say']}\n"
+                "Use find() on web pages. Finish when the whole task is done and verified.)")
+        messages: list = [{"role": "user", "content": note}]
+        await run_turns(session, client, tools_all + [FINISH_TOOL], messages, res, pr, t0, model=model,
+                        effort=effort, fallbacks=fallbacks, max_turns=40)
+        if res.status == "done" and not run.from_cache:
+            cache_put(task, app, {k: plan[k] for k in ("summary", "app", "needs_answer", "steps")})
+        res.elapsed_s = time.time() - t0
+        return res, run
     if run.failed_step is None and plan.get("steps"):
         # 4a. clean run: answer if asked (one small call), remember the plan
         answer = ""
@@ -463,7 +492,8 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
                 model=model, max_tokens=1000,
                 messages=[{"role": "user", "content": f"Task: {task}\n\nWhat the program read:\n\n"
                            + "\n\n".join(reports) + "\n\nReply with only the answer the task asks for, "
-                           "exactly as it appears."}],
+                           "as plain text (no Markdown), in a few words a non-technical person understands "
+                           "(e.g. \"29 GB free\")."}],
                 output_config={"effort": "low"})
             run.planning_calls += 1
             res.input_tokens += resp.usage.input_tokens
@@ -495,6 +525,9 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
                 + (f"Last call: {last.get('name')} {json.dumps(last.get('input'))} →\n{str(last.get('result'))[:2500]}\n"
                    if last else "")
                 + (f"Current window: {win}.\n" if win else "")
+                + ("The plan's remaining steps, which still apply (follow their instructions):\n"
+                   + "\n".join(f"- {s['say']}" for s in plan["steps"][i:]) + "\n"
+                   if plan.get("steps") and i < len(plan["steps"]) else "")
                 + "Continue from the current state: observe first, don't redo steps that already worked.)")
         messages: list = [{"role": "user", "content": note}]
         await run_turns(session, client, tools_all + [FINISH_TOOL], messages, res, pr, t0, model=model,
