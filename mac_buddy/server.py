@@ -588,6 +588,29 @@ def harness_menu_frame(window: str, title: str) -> str:
 
 
 @mcp.tool()
+def harness_doc_state(window: str) -> str:
+    """(Harness only.) The window's document file state (mtime, size) as JSON, or null."""
+    import json
+    try:
+        w = _win(window)
+        snap = _snap(w)
+        return json.dumps(S.file_state(snap.document) if snap.document else None)
+    except (ToolError, ax.AXError):
+        return "null"
+
+
+@mcp.tool()
+def harness_app_window_frame(app: str) -> str:
+    """(Harness only.) Screen frame of an app's main window, or {}."""
+    import json
+    a = ax.find_app(app)
+    if a is None:
+        return "{}"
+    wins = ax.windows(a)
+    return json.dumps(_frame(wins[0]) or {}) if wins else "{}"
+
+
+@mcp.tool()
 def harness_window_frame(window: str) -> str:
     """(Harness only.) Screen frame of a window."""
     import json

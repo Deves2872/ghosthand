@@ -9,6 +9,8 @@ dependencies = [
     "pyobjc-framework-applicationservices>=13.0",
     "pyobjc-framework-cocoa>=13.0",
     "pyobjc-framework-quartz>=13.0",
+    "pywhispercpp>=1.5",
+    "sounddevice>=0.5",
 ]
 
 [project.scripts]
@@ -18,6 +20,7 @@ mac-buddy-bench = "mac_buddy.bench.run:main"
 mac-buddy-setup = "mac_buddy.permissions:main"
 mac-buddy-chat = "mac_buddy.chat:main"
 mac-buddy-log = "mac_buddy.display:replay_main"
+mac-buddy-app = "mac_buddy.app.main:main"
 
 [build-system]
 requires = ["hatchling"]

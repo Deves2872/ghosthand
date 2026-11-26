@@ -24,7 +24,7 @@ C = {"dim": "\033[2m", "b": "\033[1m", "g": "\033[32m", "r": "\033[31m", "y": "\
 LOG_DIR = os.path.expanduser("~/Library/Logs/mac-buddy")
 
 # Result lines that must always be shown, in full, in the compact view.
-_ALERT = re.compile(r"^(ERROR|FOCUS MOVED|NO CHANGE|NO NEW WINDOW|NOT SAVED|APPS LAUNCHED|NOTE: changed|"
+_ALERT = re.compile(r"^(ERROR|FOCUS MOVED|NO NEW WINDOW|NOT SAVED|APPS LAUNCHED|NOTE: changed|"
                     r"DISK: .*(does not exist|can't be checked)|.*READ-BACK DIFFERS|.*FAILED)")
 
 
@@ -97,7 +97,8 @@ def summarize(name: str, text: str) -> tuple[str, list[str]]:
         in_changes = False
     if n_changes:
         bits.append(f"{n_changes} change{'s' * (n_changes != 1)}" + (f", title → '{_clip(title, 30)}'" if title else ""))
-    if any(l.startswith("NO CHANGE") for l in lines):
+    saved = any(re.match(r"DISK: .+ was written", l) for l in lines)
+    if any(l.startswith("NO CHANGE") for l in lines) and not saved:  # a confirmed save is a change
         ok, bits = "⚠ ", bits + ["no visible change"]
     for l in lines:
         if l.startswith("+ NEW WINDOW") and name != "new_document":

@@ -5,3 +5,4 @@ __pycache__/
 INTERVIEW_PREP.md
 results-raw/
 .DS_Store
+dist/

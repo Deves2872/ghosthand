@@ -99,8 +99,10 @@ def _guess_app(task: str, apps_text: str) -> str | None:
     known = names + ["TextEdit", "Stickies", "Notes", "Finder", "Numbers", "Pages", "Keynote",
                      "Reminders", "Calendar", "Mail", "Safari", "Preview", "Music"]
     low = task.lower()
+    squashed = re.sub(r"\s+", "", low)  # "text edit" (as people say it) is TextEdit
     for n in sorted(set(known), key=len, reverse=True):
-        if re.search(r"\b" + re.escape(n.lower()) + r"\b", low):
+        if re.search(r"\b" + re.escape(n.lower()) + r"\b", low) or \
+                (" " not in n and len(n) > 4 and n.lower() in squashed):
             return n
     return None
 
@@ -229,9 +231,44 @@ class PlanRun:
     notes: list = field(default_factory=list)
 
 
+def _tree_only(observe_text: str) -> str:
+    return "\n".join(l for l in observe_text.splitlines() if re.match(r"\s*\[e\d+\]", l))
+
+
+async def _person_did_impl(call, harness, step, app, win, look_before, disk_before) -> bool:
+    """Did the person's own action have the effect the step expects?"""
+    expect = step.get("expect") or []
+    if "saved" in expect and win:
+        return await harness("harness_doc_state", {"window": win}) != disk_before
+    try:
+        args = json.loads(step.get("args_json") or "{}")
+    except ValueError:
+        args = {}
+    if step["tool"] == "launch_app":
+        # the app must be running, with the named document open if there is one
+        o = await call("observe", {"app": app}, quiet=True)
+        if o.startswith("ERROR"):
+            return False
+        doc = args.get("document")
+        if not doc:
+            return True
+        apps = await call("list_apps", {}, quiet=True)
+        line = next((l for l in apps.splitlines() if l.lower().startswith(f"- {app.lower()} [")), "")
+        return os.path.basename(os.path.expanduser(doc)) in line
+    after = await call("observe", {"app": app, "window": win} if win else {"app": app}, quiet=True)
+    if "new_window" in expect or step["tool"] == "new_document":
+        return "Other windows of this app" in after and "Other windows of this app" not in look_before \
+            or after.splitlines()[:1] != look_before.splitlines()[:1]
+    want = (step.get("expect_text") or "").lower()
+    if want and want in after.lower() and want not in look_before.lower():
+        return True
+    return _tree_only(after) != _tree_only(look_before)
+
+
 async def plan_and_run(task: str, session, client, pr, *, model: str, effort: str = "medium",
                        fallbacks: bool = True, history: str = "", on_step: StepHook | None = None,
-                       use_cache: bool = True) -> tuple[RunResult, PlanRun]:
+                       use_cache: bool = True,
+                       on_permission: Callable[[str], Awaitable[bool]] | None = None) -> tuple[RunResult, PlanRun]:
     res = RunResult(task=task)
     run = PlanRun()
     t0 = time.time()
@@ -239,19 +276,35 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
     tool_names = [t["name"] for t in tools_all]
 
     async def call(name: str, args: dict, quiet: bool = False) -> str:
+        text = await _call(name, args, quiet)
+        if text.startswith("ERROR: STALE") and not quiet:
+            # Nothing was done; the server refreshed its view. Retry once without alarming anyone.
+            pr.event("info", text=f"{name}: the window had just changed, so I looked again", elapsed=time.time() - t0)
+            text = await _call(name, args, quiet)
+        if not quiet:
+            pr.event("result", name=name, text=text, elapsed=time.time() - t0)
+        return text
+
+    async def _call(name: str, args: dict, quiet: bool = False) -> str:
         if not quiet:
             pr.event("call", name=name, input=args, elapsed=time.time() - t0)
         res.tool_calls += 1
         out = await session.call_tool(name, args)
         text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
-        if not quiet:
-            pr.event("result", name=name, text=text, elapsed=time.time() - t0)
+        if "lacks Accessibility permission" in text and on_permission:
+            # the permission was never given, or was turned off mid-task: ask, then retry
+            if await on_permission("accessibility"):
+                out = await session.call_tool(name, args)
+                text = "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
         res.transcript.append({"name": name, "input": args, "result": text})
         return text
 
     async def harness(name: str, args: dict) -> str:
         out = await session.call_tool(name, args)
         return "\n".join(c.text for c in out.content if getattr(c, "type", "") == "text")
+
+    async def _person_did(step, app_, win_, look_before, disk_before):
+        return await _person_did_impl(call, harness, step, app_, win_, look_before, disk_before)
 
     pr.event("info", text=f"task: {task}", elapsed=0)
     # 1. look, without the model
@@ -348,17 +401,34 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
                                                  {"window": args["window"], "title": args["path"][0]}) or "{}")
             elif args.get("window"):
                 frame = json.loads(await harness("harness_window_frame", {"window": args["window"]}) or "{}")
-            decision = await on_step(i, step, frame)
+            frame = {**frame, "app": app, "total": len(steps)}
+            look_before = await call("observe", {"app": app, "window": win} if win else {"app": app}, quiet=True)
+            disk_before = await harness("harness_doc_state", {"window": win}) if win else "null"
+            frame["retry"] = 0
+            while True:
+                decision = await on_step(i, step, frame)
+                if decision != "skip":
+                    break
+                # The person says they did it: check, don't trust.
+                seen = await _person_did(step, app, win, look_before, disk_before)
+                if seen:
+                    break
+                frame["retry"] += 1
+                pr.event("info", text=f"step {i + 1}: I don't see that change yet", elapsed=time.time() - t0)
             if decision == "stop":
                 run.failed_step, run.failure = i, "stopped by the person"
                 res.status, res.evidence = "failed", "Stopped by you before: " + step["say"]
                 res.elapsed_s = time.time() - t0
                 return res, run
             if decision == "skip":
+                run.steps_done += 1
+                run.notes.append(f"step {i + 1} done by the person, checked")
+                if "new_window" in (step.get("expect") or []) or tool in ("launch_app", "new_document"):
+                    o = await call("observe", {"app": app}, quiet=True)
+                    m = re.match(r"WINDOW (w\d+)", o)
+                    win = m.group(1) if m else win
                 continue
         text = await call(tool, args)
-        if text.startswith("ERROR: STALE"):  # nothing was done; look again and retry once
-            text = await call(tool, args)
         why = check(step, text)
         if why:
             run.failed_step, run.failure = i, why
@@ -400,7 +470,8 @@ async def plan_and_run(task: str, session, client, pr, *, model: str, effort: st
             res.output_tokens += resp.usage.output_tokens
             answer = next((b.text for b in resp.content if b.type == "text"), "").strip()
         res.status, res.answer = "done", answer
-        res.evidence = " ".join(f"{s['say']} ✓" for s in plan["steps"]) + \
+        res.evidence = (f"{'; '.join(run.notes)}. " if run.notes else "") + \
+            " ".join(f"{s['say']} ✓" for s in plan["steps"]) + \
             " Every step's result showed what it should" + \
             (" (including the save on disk)." if any("saved" in s["expect"] for s in plan["steps"]) else ".")
         if not run.from_cache:
