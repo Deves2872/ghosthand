@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 
 import AppKit
 import objc
@@ -55,6 +56,9 @@ class AppDelegate(NSObject):
         self.trigger_item = self._mi("Open with ⌘ + double-click", "toggleTrigger:")
         self.trigger_item.setState_(not PREFS.boolForKey_("noCmdDoubleClick"))
         m.addItem_(self.trigger_item)
+        m.addItem_(AppKit.NSMenuItem.separatorItem())
+        m.addItem_(self._mi("Take meeting notes…", "meetingNotes:"))
+        m.addItem_(self._mi("Open meeting notes", "openNotes:"))
         m.addItem_(AppKit.NSMenuItem.separatorItem())
         m.addItem_(self._mi("API key…", "askKey:"))
         m.addItem_(self._mi("Check permissions…", "checkPerms:"))
@@ -146,8 +150,7 @@ class AppDelegate(NSObject):
         alert.addButtonWithTitle_("Get a key")
         alert.addButtonWithTitle_("Cancel")
         alert.window().setInitialFirstResponder_(field)
-        AppKit.NSApp.activateIgnoringOtherApps_(True)
-        r = alert.runModal()
+        r = perms.modal(alert)
         if r == AppKit.NSAlertSecondButtonReturn:
             subprocess.run(["open", "https://console.anthropic.com/settings/keys"])
             return self.askKey_(sender)
@@ -163,7 +166,7 @@ class AppDelegate(NSObject):
                 bad = AppKit.NSAlert.alloc().init()
                 bad.setMessageText_("That didn't look like an API key")
                 bad.setInformativeText_("Keys start with “sk-ant-”. Copy it again from console.anthropic.com.")
-                bad.runModal()
+                perms.modal(bad)
                 return self.askKey_(sender)
 
     def checkPerms_(self, sender):
@@ -172,8 +175,7 @@ class AppDelegate(NSObject):
             msg.setMessageText_("All set" if ok else "Mac Buddy still can't use your apps")
             msg.setInformativeText_("Mac Buddy can see and use your apps." if ok else
                                     "Turn on Mac Buddy under Accessibility, then try again.")
-            AppKit.NSApp.activateIgnoringOtherApps_(True)
-            msg.runModal()
+            perms.modal(msg)
             if ok:
                 self._start_worker()
         perms.ask("accessibility", done)
@@ -185,6 +187,127 @@ class AppDelegate(NSObject):
         except OSError:
             pass
 
+    def meetingNotes_(self, sender):
+        self.start_meeting_notes()
+
+    def openNotes_(self, sender):
+        from ..meeting import NOTES_DIR
+        os.makedirs(NOTES_DIR, exist_ok=True)
+        subprocess.run(["open", NOTES_DIR])
+
+    def stopNotes_(self, sender):
+        self.stop_meeting_notes()
+
+    def badgeTick_(self, timer):
+        t = getattr(self, "taker", None)
+        if t is None:
+            return
+        secs = int(time.time() - t.meeting.started)
+        n = len(t.meeting.lines) + len(t.live)
+        self.badge_label.setStringValue_(f"📝 Taking notes · {secs // 60}:{secs % 60:02d} · {n} lines")
+
+    @objc.python_method
+    def start_meeting_notes(self):
+        from ..meeting import NoteTaker, find_meeting, turn_on_captions
+        if getattr(self, "taker", None) is not None:
+            self.panel._append("\nI'm already taking notes. Click Stop on the badge to finish.\n")
+            return
+        found = find_meeting()
+        if found is None:
+            self.panel.show_near()
+            self.panel._append("\nI don't see a meeting. Open it (Google Meet in Chrome, Zoom or Teams), "
+                               "then ask me again.\n", color="systemOrangeColor")
+            self.panel.set_busy(False, "")
+            return
+        app, win, title = found
+        alert = AppKit.NSAlert.alloc().init()
+        alert.setMessageText_("Have you told everyone you're taking notes?")
+        alert.setInformativeText_(f"Mac Buddy will take notes of “{title}” from its live captions. Let the "
+                                  "other people in the meeting know before you start. It's the polite thing "
+                                  "to do, and in many places the law requires it.")
+        alert.addButtonWithTitle_("Yes, start taking notes")
+        alert.addButtonWithTitle_("Not yet")
+        if perms.modal(alert) != AppKit.NSAlertFirstButtonReturn:
+            self.panel.set_busy(False, "")
+            return
+        pressed = turn_on_captions(app, win)
+        self.taker = NoteTaker(app, win, title)
+        self.taker.start()
+        self._show_badge()
+        self.panel._append(f"\n📝 Taking notes of “{title}”"
+                           + (" (I turned on its captions)" if pressed else
+                              ". Make sure the meeting's captions (CC) are on.") + "\n", color="systemPurpleColor")
+        self.panel.set_busy(False, "Taking notes…")
+
+    @objc.python_method
+    def _show_badge(self):
+        scr = AppKit.NSScreen.mainScreen().visibleFrame()
+        w, h = 300, 40
+        b = AppKit.NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
+            NSMakeRect(scr.origin.x + scr.size.width - w - 16, scr.origin.y + scr.size.height - h - 10, w, h),
+            AppKit.NSWindowStyleMaskBorderless | AppKit.NSWindowStyleMaskNonactivatingPanel,
+            AppKit.NSBackingStoreBuffered, False)
+        b.setLevel_(AppKit.NSFloatingWindowLevel)
+        b.setCollectionBehavior_(AppKit.NSWindowCollectionBehaviorCanJoinAllSpaces)
+        b.setOpaque_(False)
+        b.setBackgroundColor_(AppKit.NSColor.clearColor())
+        v = AppKit.NSVisualEffectView.alloc().initWithFrame_(NSMakeRect(0, 0, w, h))
+        v.setMaterial_(AppKit.NSVisualEffectMaterialHUDWindow)
+        v.setState_(AppKit.NSVisualEffectStateActive)
+        v.setWantsLayer_(True)
+        v.layer().setCornerRadius_(10)
+        lab = AppKit.NSTextField.labelWithString_("📝 Taking notes")
+        lab.setFrame_(NSMakeRect(12, 11, w - 92, 18))
+        lab.setFont_(AppKit.NSFont.systemFontOfSize_weight_(12.5, 0.4))
+        v.addSubview_(lab)
+        stop = AppKit.NSButton.buttonWithTitle_target_action_("Stop", self, "stopNotes:")
+        stop.setFrame_(NSMakeRect(w - 74, 6, 64, 28))
+        stop.setRefusesFirstResponder_(True)
+        v.addSubview_(stop)
+        b.setContentView_(v)
+        b.orderFrontRegardless()
+        self.badge, self.badge_label = b, lab
+        from Foundation import NSTimer
+        self.badge_timer = NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+            1.0, self, "badgeTick:", None, True)
+
+    @objc.python_method
+    def stop_meeting_notes(self):
+        t = getattr(self, "taker", None)
+        if t is None:
+            return
+        self.taker = None
+        self.badge_timer.invalidate()
+        self.badge.orderOut_(None)
+        meeting = t.stop()
+        self.panel.show_near()
+        self.panel._append(f"\nWriting up the notes ({len(meeting.lines)} caption lines)…\n", dim=True)
+        self.panel.set_busy(True, "Writing notes…")
+        self._start_worker()
+        import asyncio
+        from ..meeting import write_notes
+
+        async def go():
+            self.worker.ready.wait(30)
+            return await write_notes(meeting, self.worker.client, self.worker.model)
+
+        def done(fut):
+            try:
+                path, notes = fut.result()
+                AppHelper.callAfter(self._notes_done, path, notes, "")
+            except Exception as e:
+                AppHelper.callAfter(self._notes_done, "", "", str(e))
+        asyncio.run_coroutine_threadsafe(go(), self.worker.loop).add_done_callback(done)
+
+    @objc.python_method
+    def _notes_done(self, path, notes, err):
+        if err:
+            self.panel.on_done({"status": "failed", "evidence": f"Couldn't write the notes: {err}"})
+            return
+        self.panel._append("\n" + notes + "\n")
+        self.panel._append(f"\nSaved to {path}\n", dim=True, size=11)
+        self.panel.set_busy(False, "Notes saved")
+
     def openLogs_(self, sender):
         from ..display import LOG_DIR
         os.makedirs(LOG_DIR, exist_ok=True)
@@ -193,6 +316,14 @@ class AppDelegate(NSObject):
     # ----------------------------------------------- requests (from the panel)
     @objc.python_method
     def submit(self, text: str, show_me: bool = False):
+        import re
+        if re.search(r"\b(take|taking|start)\b.*\bnotes?\b.*\b(meeting|call|standup|sync)\b|"
+                     r"\bmeeting notes\b|\bnote[- ]?taker\b", text, re.I):
+            if re.search(r"\b(stop|end|finish)\b", text, re.I):
+                self.stop_meeting_notes()
+            else:
+                self.start_meeting_notes()
+            return
         if not keychain.get_key():
             self.panel.on_done({"status": "failed", "evidence": "I need an API key first."})
             self.askKey_(None)
@@ -237,6 +368,12 @@ class AppDelegate(NSObject):
             total = frame.get("total") or "?"
             self.overlay.showStep({"frame": frame, "caption": step["say"],
                                      "label": f"Step {i + 1} of {total}", "real_pointer": real_pointer})
+
+    @objc.python_method
+    def ask_command(self, command, why, risky, callback):
+        self.panel.ask_command(command, why, risky, callback)
+        if not self.panel.panel.isVisible():
+            self.panel.show_near()
 
     @objc.python_method
     def hide_step(self):

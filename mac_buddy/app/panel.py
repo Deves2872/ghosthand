@@ -52,6 +52,7 @@ class BuddyPanel(NSObject):
         self.owner = owner  # the app delegate
         self.voice_state = "idle"
         self.busy = False
+        self.confirm_cb = None
         self._build()
         return self
 
@@ -247,13 +248,52 @@ class BuddyPanel(NSObject):
         self.status.setStringValue_("I'll point at each step" if sender.selectedSegment() == 1 else "")
 
     def stepGo_(self, sender):
+        if self._answer_command(True):
+            return
         self.owner.decide("go")
 
     def stepSkip_(self, sender):
         self.owner.decide("skip")
 
     def stepStop_(self, sender):
+        if self._answer_command(False):
+            return
         self.owner.decide("stop")
+
+    @objc.python_method
+    def ask_command(self, command, why, risky, callback):
+        """Show the exact command and wait for a click on Run or Cancel."""
+        self.confirm_cb = callback
+        self._append("\nI'd like to run this in Terminal" + (f" ({why.rstrip('.')})" if why else "") + ":\n")
+        mono = {AppKit.NSFontAttributeName: AppKit.NSFont.monospacedSystemFontOfSize_weight_(12.5, 0.2),
+                AppKit.NSForegroundColorAttributeName: _color("labelColor")}
+        self.text.textStorage().appendAttributedString_(
+            AppKit.NSAttributedString.alloc().initWithString_attributes_(f"  $ {command}\n", mono))
+        if risky:
+            self._append("  ⚠ Careful: this " + "; ".join(risky) + ".\n", color="systemRedColor", bold=True,
+                         size=12)
+        self.text.scrollRangeToVisible_((self.text.string().length(), 0))
+        self.b_do.setTitle_("Run")
+        self.b_stop.setTitle_("Cancel")
+        self.b_did.setHidden_(True)
+        self.stepbox.setHidden_(False)
+        self.status.setStringValue_("Waiting for you: Run or Cancel")
+
+    @objc.python_method
+    def _answer_command(self, ok) -> bool:
+        cb = getattr(self, "confirm_cb", None)
+        if cb is None:
+            return False
+        self.confirm_cb = None
+        self.b_do.setTitle_("Do it for me")
+        self.b_stop.setTitle_("Stop")
+        self.b_did.setHidden_(False)
+        self.stepbox.setHidden_(True)
+        self._append("  ✓ Running it…\n" if ok else "  ✗ Not run.\n", color="systemGreenColor" if ok else
+                     "systemOrangeColor", size=12)
+        self.status.setStringValue_("Working…")
+        cb(ok)
+        return True
 
     # voice (the delegate does the work)
     @objc.python_method
@@ -357,7 +397,9 @@ _FRIENDLY = {"launch_app": "Opened the app", "new_document": "Made a new documen
              "insert_text": "Added the text", "read_text": "Read the text", "press_key": "Pressed a key",
              "type_text": "Typed", "menu": "Looked in a menu", "select_menu": "Chose a menu item",
              "scroll": "Scrolled", "scroll_to": "Scrolled to it", "select_rows": "Selected items",
-             "wait_for_save": "Checked it was saved", "list_apps": "Looked at your open apps"}
+             "wait_for_save": "Checked it was saved", "list_apps": "Looked at your open apps",
+             "open_url": "Opened the web page", "find": "Looked on the page", "media_control": "Checked the video",
+             "bring_to_front": "Brought it to the front for you", "run_command": "Ran the command in Terminal"}
 
 
 def _friendly(tool: str) -> str:

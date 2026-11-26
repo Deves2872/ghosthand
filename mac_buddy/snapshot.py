@@ -382,8 +382,11 @@ def text_change(a: str, b: str) -> str:
 
 
 def file_state(path: str | None):
-    if not path:
-        return None
+    if not path or "://" in path and not path.startswith("file://"):
+        return None  # a web page, not a file
+    if path.startswith("file://"):
+        from urllib.parse import unquote
+        path = unquote(path[7:])
     try:
         st = os.stat(path)
     except FileNotFoundError:

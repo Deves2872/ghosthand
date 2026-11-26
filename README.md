@@ -14,6 +14,8 @@ A helper for your Mac. Hold **⌘ and double-click** anywhere, and a chat opens 
   - `perms.py`: one-click permission popups that open the exact Settings pane.
   - `keychain.py`: the API key, stored in the Keychain.
   - `worker.py`: runs requests on a background thread.
+- **`mac_buddy/terminal.py`**: `run_command`. It runs on the buddy's side, not in the server, and only after the person approves that exact command. Risky commands are flagged.
+- **`mac_buddy/meeting.py`**: meeting notes from the live captions of a meeting the person is in. There's no audio recording, and no hidden participation.
 - **`mac_buddy/planner.py`**: plans a task **once**, runs every step without the model, and checks each result. It goes back to the model only when something doesn't go to plan, and it remembers plans that worked.
 - **`mac_buddy/server.py`**: an MCP server (stdio). It observes one window through the accessibility tree and acts on it: click, set or replace text, keys, menus, scroll, select rows. After every action it returns what changed in that window, a focus report, and whether the document's file on disk changed.
 - **`mac_buddy/harness.py`** and **`chat.py`**: the terminal versions, for a single task or a chat, with live output and a JSONL log.

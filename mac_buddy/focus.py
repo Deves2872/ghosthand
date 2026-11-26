@@ -49,8 +49,11 @@ def front_app() -> tuple[int | None, str]:
 front_window_owner = front_app
 
 
+_GET_LOCATION, _CREATE_EVENT = Quartz.CGEventGetLocation, Quartz.CGEventCreate  # see _SECS_SINCE below
+
+
 def mouse() -> tuple[float, float]:
-    p = Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
+    p = _GET_LOCATION(_CREATE_EVENT(None))
     return (round(p.x, 1), round(p.y, 1))
 
 
@@ -62,6 +65,12 @@ def mouse() -> tuple[float, float]:
 # keys do reset the catch-all "any input" counter, so that one isn't used).
 # A switch right after real input is the person's doing.
 
+# Resolve these once, at import: PyObjC loads them lazily on first use, and that lazy
+# lookup isn't thread-safe (two threads asking at once raised KeyError).
+_SECS_SINCE = Quartz.CGEventSourceSecondsSinceLastEventType
+_HID = Quartz.kCGEventSourceStateHIDSystemState
+_CLICK_TYPES = (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventRightMouseDown, Quartz.kCGEventOtherMouseDown)
+
 PERSON_WINDOW_S = 1.5
 _HUMAN_TYPES = (Quartz.kCGEventKeyDown, Quartz.kCGEventLeftMouseDown, Quartz.kCGEventRightMouseDown,
                 Quartz.kCGEventOtherMouseDown, Quartz.kCGEventMouseMoved, Quartz.kCGEventScrollWheel,
@@ -70,11 +79,16 @@ _HUMAN_TYPES = (Quartz.kCGEventKeyDown, Quartz.kCGEventLeftMouseDown, Quartz.kCG
 
 def person_input_age() -> float:
     """Seconds since the last real keyboard/mouse input."""
-    return min(Quartz.CGEventSourceSecondsSinceLastEventType(Quartz.kCGEventSourceStateHIDSystemState, t)
-               for t in _HUMAN_TYPES)
+    return min(_SECS_SINCE(_HID, t) for t in _HUMAN_TYPES)
 
 
-def attribute(new: tuple, input_age: float, target_pids: set, newly_launched: bool) -> tuple[str, str]:
+def person_click_age() -> float:
+    """Seconds since the last real mouse click (the server never clicks with the mouse)."""
+    return min(_SECS_SINCE(_HID, t) for t in _CLICK_TYPES)
+
+
+def attribute(new: tuple, input_age: float, target_pids: set, newly_launched: bool,
+              click_age: float | None = None) -> tuple[str, str]:
     """('person' | 'agent?' | 'unknown', reason) for the app `new` coming to the front.
 
     The target app or a freshly launched app coming forward is always treated as
@@ -83,6 +97,11 @@ def attribute(new: tuple, input_age: float, target_pids: set, newly_launched: bo
     pid, name = new
     hint = f"; there was real keyboard/mouse input {input_age:.1f}s before, so it may have been the person" \
         if input_age <= PERSON_WINDOW_S else ""
+    click = person_click_age() if click_age is None else click_age
+    if click <= 0.8 and not newly_launched:
+        # A real click just before: the person clicked that app (typing alone isn't enough,
+        # so someone typing nonstop can't hide a steal).
+        return "person", f"a real mouse click {click:.1f}s before"
     if pid in target_pids:
         return "agent?", f"{name!r} is the app being worked on{hint}"
     if newly_launched:
@@ -110,7 +129,7 @@ class FocusReport:
 
     def attributions(self, target_pid: int | None = None) -> list[tuple[str, str]]:
         targets = {target_pid} if target_pid is not None else set()
-        return [attribute(new, age, targets, launched) for new, age, launched in self.changes]
+        return [attribute(c[0], c[1], targets, c[2], c[3] if len(c) > 3 else None) for c in self.changes]
 
     def person_only(self, target_pid: int | None = None) -> bool:
         """Every front change during this action was the person's own switch."""
@@ -157,7 +176,8 @@ class FocusMonitor:
             if not self.fronts or self.fronts[-1] != f:
                 self.fronts.append(f)
                 self.changes.append((f, person_input_age(),
-                                     self.known_pids is not None and f[0] not in self.known_pids))
+                                     self.known_pids is not None and f[0] not in self.known_pids,
+                                     person_click_age()))
             m = mouse()
             if m != self.m0:
                 self.mouse_moved = True
@@ -187,7 +207,8 @@ class FocusMonitor:
             end = front_window_owner()
             if self.fronts[-1] != end:
                 self.fronts.append(end)
-                self.changes.append((end, person_input_age(), end[0] not in (self.known_pids or {end[0]})))
+                self.changes.append((end, person_input_age(), end[0] not in (self.known_pids or {end[0]}),
+                                     person_click_age()))
             self.t1 = time.time()
         return self.report()
 
